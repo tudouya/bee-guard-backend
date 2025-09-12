@@ -6,8 +6,10 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Filament\Models\Contracts\FilamentUser;
+use Filament\Panel;
 
-class User extends Authenticatable
+class User extends Authenticatable implements FilamentUser
 {
     /** @use HasFactory<\Database\Factories\UserFactory> */
     use HasFactory, Notifiable;
@@ -20,7 +22,12 @@ class User extends Authenticatable
     protected $fillable = [
         'name',
         'email',
+        'username',
         'password',
+        'role',
+        'openid',
+        'nickname',
+        'avatar',
     ];
 
     /**
@@ -44,5 +51,30 @@ class User extends Authenticatable
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
         ];
+    }
+
+    public function canAccessPanel(Panel $panel): bool
+    {
+        $role = (string) ($this->role ?? '');
+
+        // Super admin can access all panels.
+        if ($role === 'super_admin') {
+            return true;
+        }
+
+        return match ($panel->getId()) {
+            'admin' => false, // non-super admins cannot access admin panel
+            'enterprise' => $role === 'enterprise_admin',
+            default => false,
+        };
+    }
+
+    public function getDisplayNameAttribute(): string
+    {
+        $role = (string) ($this->role ?? '');
+        if ($role === 'farmer' && filled($this->nickname)) {
+            return (string) $this->nickname;
+        }
+        return (string) ($this->name ?: ($this->username ?: ($this->email ?: '')));
     }
 }
