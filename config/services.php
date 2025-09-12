@@ -18,6 +18,11 @@ return [
         'token' => env('POSTMARK_TOKEN'),
     ],
 
+    'wechat_mini' => [
+        'app_id' => env('WECHAT_MINI_APP_ID'),
+        'app_secret' => env('WECHAT_MINI_APP_SECRET'),
+    ],
+
     'resend' => [
         'key' => env('RESEND_KEY'),
     ],
