@@ -8,6 +8,7 @@ use App\Http\Controllers\Api\UploadController;
 use App\Http\Controllers\Api\DetectionCodesController;
 use App\Http\Controllers\Api\SurveysController;
 use App\Http\Controllers\Api\ShippingNotificationsController;
+use App\Http\Controllers\Api\DetectionsController;
 
 Route::prefix('auth/wechat')->group(function () {
     Route::post('login', [WeChatAuthController::class, 'login']);
@@ -34,4 +35,8 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Shipping Notifications
     Route::post('shipping-notifications', [ShippingNotificationsController::class, 'store']);
+
+    // Detections (results)
+    Route::get('detections', [DetectionsController::class, 'index']);
+    Route::get('detections/{id}', [DetectionsController::class, 'show']);
 });

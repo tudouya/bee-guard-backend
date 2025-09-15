@@ -29,5 +29,10 @@ class DatabaseSeeder extends Seeder
                 'role' => 'super_admin',
             ]
         );
+
+        // 初始化首批疾病字典（按当前需求覆盖）
+        $this->call([
+            DiseasesBootstrapSeeder::class,
+        ]);
     }
 }
