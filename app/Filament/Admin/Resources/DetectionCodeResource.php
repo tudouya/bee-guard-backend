@@ -171,6 +171,13 @@ class DetectionCodeResource extends Resource
         ];
     }
 
+    public static function getRelations(): array
+    {
+        return [
+            \App\Filament\Admin\Resources\DetectionCodeResource\RelationManagers\ShippingNotificationsRelationManager::class,
+        ];
+    }
+
 
     // 仅用于前端预览的随机码（最终以服务端生成并校验为准）。
     protected static function previewRandomCode(): string

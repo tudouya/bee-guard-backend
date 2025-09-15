@@ -29,6 +29,19 @@ class CreateDetectionCode extends CreateRecord
         $gift = strtoupper((string) env('DETCODE_PREFIX_ENTERPRISE', 'QY'));
         $data['prefix'] = $source === 'gift' ? $gift : $self;
         $data['code'] = $this->generateUniqueCode();
+
+        // Enforce invariant at creation time:
+        // - If an assignee is provided, force status=assigned and stamp assigned_at
+        // - If status is available, clear any assignee fields
+        if (!empty($data['assigned_user_id'])) {
+            $data['status'] = 'assigned';
+            if (empty($data['assigned_at'])) {
+                $data['assigned_at'] = now();
+            }
+        } elseif (($data['status'] ?? 'available') === 'available') {
+            $data['assigned_user_id'] = null;
+            $data['assigned_at'] = null;
+        }
         return $data;
     }
 
