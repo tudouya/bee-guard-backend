@@ -1,0 +1,59 @@
+<?php
+
+namespace App\Filament\Admin\Resources\CommunityPostReplies;
+
+use App\Filament\Admin\Resources\CommunityPostReplies\Pages\ListCommunityPostReplies;
+use App\Filament\Admin\Resources\CommunityPostReplies\Schemas\CommunityPostReplyForm;
+use App\Filament\Admin\Resources\CommunityPostReplies\Tables\CommunityPostRepliesTable;
+use App\Models\CommunityPostReply;
+use BackedEnum;
+use UnitEnum;
+use Filament\Resources\Resource;
+use Filament\Schemas\Schema;
+use Filament\Support\Icons\Heroicon;
+use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\SoftDeletingScope;
+
+class CommunityPostReplyResource extends Resource
+{
+    protected static ?string $model = CommunityPostReply::class;
+
+    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedRectangleStack;
+    protected static UnitEnum|string|null $navigationGroup = '社区管理';
+    protected static ?string $navigationLabel = '帖子回复';
+
+    protected static ?string $recordTitleAttribute = 'id';
+
+    public static function form(Schema $schema): Schema
+    {
+        return CommunityPostReplyForm::configure($schema);
+    }
+
+    public static function table(Table $table): Table
+    {
+        return CommunityPostRepliesTable::configure($table);
+    }
+
+    public static function getRelations(): array
+    {
+        return [
+            //
+        ];
+    }
+
+    public static function getPages(): array
+    {
+        return [
+            'index' => ListCommunityPostReplies::route('/'),
+        ];
+    }
+
+    public static function getRecordRouteBindingEloquentQuery(): Builder
+    {
+        return parent::getRecordRouteBindingEloquentQuery()
+            ->withoutGlobalScopes([
+                SoftDeletingScope::class,
+            ]);
+    }
+}
