@@ -29,7 +29,9 @@ This checklist covers local and production deployments for the Laravel 12 + Fila
 - Optional seed (for initial admin): `php artisan db:seed --force`
 
 ## 4) Front-end assets for Filament/Livewire
-Filament login relies on Livewire/Alpine scripts. Ensure assets are available (either publish to `public/vendor` or route `/livewire/*` to PHP).
+Filament 依赖 Livewire/Alpine 脚本与 Livewire 路由（含上传/预览）。需要确保：
+1) 资源可访问（可发布到 `public/vendor`）
+2) 无论是否发布资源，`/livewire/*` 路由都必须进入 PHP（用于临时上传与预览）
 
 Recommended (publish local static assets):
 - `php artisan livewire:publish --assets --force`
@@ -43,10 +45,10 @@ Verify in browser/network:
 - `GET /vendor/livewire/livewire.js` returns 200
 - Filament assets under `/vendor/filament/...` return 200
 
-Alternative (if not publishing Livewire assets):
-- Add an Nginx rule to pass `/livewire/*` to PHP (see section 5). Not needed if you publish assets.
+Important:
+- 即便发布了 Livewire 资源，临时文件“预览”仍依赖路由 `/livewire/preview-file/*`。因此生产环境务必保证 `/livewire/*` 能回退到 `index.php`（见下一节 Nginx 配置）。
 
-## 5) Nginx reference config
+## 5) Nginx reference config（务必放行 /livewire/* 到 PHP）
 Ensure `root` points to the Laravel `public/` directory.
 
 ```
@@ -60,10 +62,19 @@ server {
         try_files $uri $uri/ /index.php?$query_string;
     }
 
-    # Only needed if you DO NOT publish Livewire assets
-    # location ^~ /livewire/ {
-    #     try_files $uri /index.php?$query_string;
-    # }
+    # 强烈建议显式放行 /livewire/* 到 Laravel（用于 /livewire/upload-file 与 /livewire/preview-file）
+    # 注意：该块必须位于任何静态资源正则块之前（否则 .png 等会被静态规则拦截为 404）
+    location ^~ /livewire/ {
+        try_files $uri /index.php?$query_string;
+    }
+
+    # 若存在静态资源正则块，请确保失败回退到 PHP（避免拦截 livewire 预览链接）
+    location ~* \.(?:css|js|map|jpg|jpeg|gif|png|svg|webp|ico)$ {
+        try_files $uri /index.php?$query_string;
+        expires 30d;
+        access_log off;
+        add_header Cache-Control public;
+    }
 
     location ~ \.php$ {
         include        fastcgi_params;
@@ -72,6 +83,16 @@ server {
     }
 }
 ```
+
+### Livewire 临时上传与预览自检
+- 无签名预览应返回 401：`GET /livewire/preview-file/test.png`
+- 通过 Tinker 生成带签名的预览 URL 应返回 200：
+  ```php
+  URL::temporarySignedRoute('livewire.preview-file', now()->addMinutes(30)->endOfHour(), [
+      'filename' => 'your-temp-file-name.png',
+  ]);
+  ```
+- 若返回 404，说明 Nginx 未回退到 PHP，请按上面的 `location ^~ /livewire/` 与静态块顺序修正。
 
 ## 6) Sessions and cookies
 - For HTTP (non-HTTPS) environments during development:
@@ -124,4 +145,3 @@ php artisan view:cache
 - Keep DB backups/snapshots before `migrate --force`.
 - Use `php artisan migrate:rollback --step=1` on failure (if safe).
 - Revert code to previous tag/commit; rerun `optimize:clear`.
-

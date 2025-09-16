@@ -13,6 +13,12 @@ class Disease extends Model
         'code',
         'name',
         'description',
+        'brief',
+        'symptom',
+        'transmit',
+        'prevention',
+        'status',
+        'sort',
     ];
 
     public function products()
@@ -20,5 +26,10 @@ class Disease extends Model
         return $this->belongsToMany(Product::class, 'disease_product')
             ->withPivot(['priority', 'note'])
             ->withTimestamps();
+    }
+
+    public function knowledgeArticles()
+    {
+        return $this->hasMany(KnowledgeArticle::class);
     }
 }

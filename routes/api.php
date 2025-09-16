@@ -10,6 +10,16 @@ use App\Http\Controllers\Api\SurveysController;
 use App\Http\Controllers\Api\ShippingNotificationsController;
 use App\Http\Controllers\Api\DetectionsController;
 
+// Knowledge base (public)
+Route::prefix('knowledge')->group(function () {
+    Route::get('/diseases', [\App\Http\Controllers\Api\Knowledge\DiseaseController::class, 'index']);
+    Route::get('/diseases/{code}', [\App\Http\Controllers\Api\Knowledge\DiseaseController::class, 'show']);
+    Route::get('/diseases/{code}/articles', [\App\Http\Controllers\Api\Knowledge\DiseaseController::class, 'articles']);
+
+    Route::get('/articles/{id}', [\App\Http\Controllers\Api\Knowledge\ArticleController::class, 'show']);
+    Route::post('/articles/{id}/exposure', [\App\Http\Controllers\Api\Knowledge\ArticleController::class, 'exposure']);
+});
+
 Route::prefix('auth/wechat')->group(function () {
     Route::post('login', [WeChatAuthController::class, 'login']);
     Route::post('bind-phone', [WeChatAuthController::class, 'bindPhone'])->middleware('auth:sanctum');

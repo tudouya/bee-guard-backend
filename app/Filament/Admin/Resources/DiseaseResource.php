@@ -6,12 +6,14 @@ use App\Filament\Admin\Resources\DiseaseResource\Pages;
 use App\Models\Disease;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\Select;
 use Filament\Resources\Resource;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
 use Filament\Tables;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
 
 class DiseaseResource extends Resource
 {
@@ -37,9 +39,34 @@ class DiseaseResource extends Resource
                         ->label('Name')
                         ->required()
                         ->maxLength(191),
+                    TextInput::make('brief')
+                        ->label('Brief')
+                        ->maxLength(191),
+                    Select::make('status')
+                        ->label('Status')
+                        ->options([
+                            'active' => 'Active',
+                            'hidden' => 'Hidden',
+                        ])->default('active')->required(),
+                    TextInput::make('sort')
+                        ->label('Sort')
+                        ->numeric()
+                        ->default(0),
+                ])->columns(2),
+            Section::make('Details')
+                ->schema([
                     Textarea::make('description')
                         ->label('Description')
                         ->rows(4),
+                    Textarea::make('symptom')
+                        ->label('Symptom')
+                        ->rows(3),
+                    Textarea::make('transmit')
+                        ->label('Transmit')
+                        ->rows(3),
+                    Textarea::make('prevention')
+                        ->label('Prevention')
+                        ->rows(3),
                 ])->columns(2),
         ]);
     }
@@ -47,10 +74,18 @@ class DiseaseResource extends Resource
     public static function table(Table $table): Table
     {
         return $table
+            ->modifyQueryUsing(fn (Builder $query) => $query->withCount([
+                'knowledgeArticles as published_articles_count' => function (Builder $q) {
+                    $q->whereNotNull('published_at')->where('published_at', '<=', now());
+                }
+            ]))
             ->columns([
                 TextColumn::make('id')->sortable()->toggleable(),
                 TextColumn::make('code')->searchable()->sortable(),
                 TextColumn::make('name')->searchable()->sortable(),
+                TextColumn::make('published_articles_count')->label('Published Articles')->sortable(),
+                TextColumn::make('status')->badge()->sortable(),
+                TextColumn::make('sort')->sortable(),
                 TextColumn::make('updated_at')->dateTime()->label('Updated')->sortable(),
             ])
             ->filters([])
