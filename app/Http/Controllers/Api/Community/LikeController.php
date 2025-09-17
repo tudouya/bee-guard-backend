@@ -2,7 +2,9 @@
 
 namespace App\Http\Controllers\Api\Community;
 
+use App\Enums\RewardMetric;
 use App\Http\Controllers\Controller;
+use App\Jobs\EvaluatePostRewardsJob;
 use App\Models\CommunityPost;
 use App\Models\CommunityPostLike;
 use Illuminate\Http\JsonResponse;
@@ -30,7 +32,8 @@ class LikeController extends Controller
         }
 
         $liked = false;
-        DB::transaction(function () use ($post, $user, &$liked) {
+        $created = false;
+        DB::transaction(function () use ($post, $user, &$liked, &$created) {
             $exists = CommunityPostLike::query()
                 ->where('post_id', $post->id)
                 ->where('user_id', $user->id)
@@ -49,9 +52,14 @@ class LikeController extends Controller
 
             CommunityPost::query()->where('id', $post->id)->increment('likes');
             $liked = true;
+            $created = true;
         });
 
         $likes = CommunityPost::query()->where('id', $post->id)->value('likes') ?? $post->likes;
+
+        if ($created) {
+            EvaluatePostRewardsJob::dispatch($post->id, [RewardMetric::Likes->value]);
+        }
 
         return response()->json([
             'code' => 0,
@@ -81,6 +89,7 @@ class LikeController extends Controller
             return response()->json(['code' => 404, 'message' => 'NOT_FOUND'], 404);
         }
 
+        $removed = false;
         $removed = false;
         DB::transaction(function () use ($post, $user, &$removed) {
             $like = CommunityPostLike::query()

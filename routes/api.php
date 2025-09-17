@@ -13,6 +13,7 @@ use App\Http\Controllers\Api\Community\ReplyController as CommunityReplyControll
 use App\Http\Controllers\Api\DetectionCodesController;
 use App\Http\Controllers\Api\SurveysController;
 use App\Http\Controllers\Api\ShippingNotificationsController;
+use App\Http\Controllers\Api\RewardController;
 use App\Http\Controllers\Api\DetectionsController;
 
 // Knowledge base (public)
@@ -60,6 +61,12 @@ Route::middleware('auth:sanctum')->group(function () {
     // Detections (results)
     Route::get('detections', [DetectionsController::class, 'index']);
     Route::get('detections/{id}', [DetectionsController::class, 'show']);
+
+    Route::get('rewards', [RewardController::class, 'index']);
+    Route::get('rewards/summary', [RewardController::class, 'summary']);
+    Route::get('rewards/{id}', [RewardController::class, 'show'])->whereUuid('id');
+    Route::post('rewards/{id}/acknowledge', [RewardController::class, 'acknowledge'])->whereUuid('id');
+    Route::post('rewards/{id}/mark-used', [RewardController::class, 'markUsed'])->whereUuid('id');
 
     Route::prefix('community')->group(function () {
         Route::post('posts', [CommunityPostController::class, 'store']);

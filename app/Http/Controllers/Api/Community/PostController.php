@@ -2,8 +2,10 @@
 
 namespace App\Http\Controllers\Api\Community;
 
+use App\Enums\RewardMetric;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\Community\CommunityPostStoreRequest;
+use App\Jobs\EvaluatePostRewardsJob;
 use App\Models\CommunityPost;
 use App\Models\CommunityPostLike;
 use App\Models\Disease;
@@ -302,6 +304,7 @@ class PostController extends Controller
         if (Cache::add($key, 1, self::CACHE_VIEW_WINDOW)) {
             CommunityPost::query()->where('id', $post->id)->increment('views');
             $post->views++;
+            EvaluatePostRewardsJob::dispatch($post->id, [RewardMetric::Views->value]);
         }
     }
 

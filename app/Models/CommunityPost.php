@@ -2,6 +2,8 @@
 
 namespace App\Models;
 
+use App\Enums\RewardMetric;
+use App\Jobs\EvaluatePostRewardsJob;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -103,5 +105,7 @@ class CommunityPost extends Model
 
         $this->replies_count = $count;
         $this->save();
+
+        EvaluatePostRewardsJob::dispatch($this->getKey(), [RewardMetric::Replies->value]);
     }
 }
