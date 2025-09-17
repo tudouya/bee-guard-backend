@@ -43,10 +43,18 @@ class DetectionCodeResource extends Resource
                         ->required()
                         ->native(false)
                         ->live() // 切换时立即刷新表单，使 Enterprise 显示/隐藏
-                        ->afterStateUpdated(function (string $state, Set $set) {
-                            $self = strtoupper((string) env('DETCODE_PREFIX_SELF', 'ZF'));
-                            $gift = strtoupper((string) env('DETCODE_PREFIX_ENTERPRISE', 'QY'));
-                            $prefix = $state === 'gift' ? $gift : $self;
+                        ->afterStateUpdated(function (string $state, Set $set, callable $get) {
+                            if ($state === 'gift') {
+                                $enterpriseId = (int) ($get('enterprise_id') ?? 0);
+                                $enterprisePrefix = null;
+                                if ($enterpriseId > 0) {
+                                    $enterprise = \App\Models\Enterprise::query()->find($enterpriseId);
+                                    $enterprisePrefix = $enterprise?->code_prefix ?: null;
+                                }
+                                $prefix = $enterprisePrefix ?: DetectionCode::DEFAULT_PREFIX_GIFT;
+                            } else {
+                                $prefix = DetectionCode::DEFAULT_PREFIX_SELF;
+                            }
                             $set('prefix', $prefix);
                             $set('code', self::previewRandomCode());
                         })
@@ -56,6 +64,22 @@ class DetectionCodeResource extends Resource
                         ->relationship('enterprise', 'name')
                         ->searchable()
                         ->preload()
+                        ->live()
+                        ->afterStateUpdated(function ($state, Set $set, callable $get) {
+                            // When enterprise changes and source is gift, prefer enterprise code_prefix
+                            if ($get('source_type') !== 'gift') {
+                                return;
+                            }
+                            $enterprisePrefix = null;
+                            $enterpriseId = (int) ($state ?? 0);
+                            if ($enterpriseId > 0) {
+                                $enterprise = \App\Models\Enterprise::query()->find($enterpriseId);
+                                $enterprisePrefix = $enterprise?->code_prefix ?: null;
+                            }
+                            $prefix = $enterprisePrefix ?: DetectionCode::DEFAULT_PREFIX_GIFT;
+                            $set('prefix', $prefix);
+                            $set('code', self::previewRandomCode());
+                        })
                         ->visible(fn (callable $get) => $get('source_type') === 'gift')
                         ->required(fn (callable $get) => $get('source_type') === 'gift')
                         ->columnSpan(1),

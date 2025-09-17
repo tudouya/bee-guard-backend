@@ -16,6 +16,7 @@ class Enterprise extends Model
         'contact_name',
         'contact_phone',
         'status',
+        'code_prefix',
         'meta',
     ];
 
@@ -28,4 +29,3 @@ class Enterprise extends Model
         return $this->belongsTo(User::class, 'owner_user_id');
     }
 }
-

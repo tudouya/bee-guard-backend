@@ -6,10 +6,14 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use App\Models\Enterprise;
 
 class DetectionCode extends Model
 {
     use HasFactory;
+
+    public const DEFAULT_PREFIX_SELF = 'ZF';
+    public const DEFAULT_PREFIX_GIFT = 'QY';
 
     protected $fillable = [
         'code',
@@ -46,6 +50,23 @@ class DetectionCode extends Model
 
     protected static function booted(): void
     {
+        // Ensure default prefix based on source type at creation time.
+        static::creating(function (DetectionCode $code) {
+            $src = (string) ($code->source_type ?? 'self_paid');
+            if (empty($code->prefix)) {
+                if ($src === 'gift') {
+                    $enterprisePrefix = null;
+                    if (!empty($code->enterprise_id)) {
+                        $enterprise = Enterprise::query()->find($code->enterprise_id);
+                        $enterprisePrefix = $enterprise?->code_prefix ?: null;
+                    }
+                    $code->prefix = $enterprisePrefix ?: self::DEFAULT_PREFIX_GIFT;
+                } else {
+                    $code->prefix = self::DEFAULT_PREFIX_SELF;
+                }
+            }
+        });
+
         static::saving(function (DetectionCode $code) {
             // If status is explicitly set to available, ensure no assignee data remains
             if ($code->status === 'available') {

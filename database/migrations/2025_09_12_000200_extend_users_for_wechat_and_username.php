@@ -23,12 +23,6 @@ return new class extends Migration
         if ($driver === 'mysql') {
             DB::statement("ALTER TABLE `users` MODIFY `email` VARCHAR(255) NULL");
             DB::statement("ALTER TABLE `users` MODIFY `password` VARCHAR(255) NULL");
-        } elseif ($driver === 'pgsql') {
-            DB::statement('ALTER TABLE users ALTER COLUMN email DROP NOT NULL');
-            DB::statement('ALTER TABLE users ALTER COLUMN password DROP NOT NULL');
-        } elseif ($driver === 'sqlite') {
-            // SQLite alters require table rebuild; skip here (tests often run in memory).
-            // For SQLite testing, keep original NOT NULL constraints.
         }
     }
 
@@ -38,9 +32,6 @@ return new class extends Migration
         if ($driver === 'mysql') {
             DB::statement("ALTER TABLE `users` MODIFY `email` VARCHAR(255) NOT NULL");
             DB::statement("ALTER TABLE `users` MODIFY `password` VARCHAR(255) NOT NULL");
-        } elseif ($driver === 'pgsql') {
-            DB::statement('ALTER TABLE users ALTER COLUMN email SET NOT NULL');
-            DB::statement('ALTER TABLE users ALTER COLUMN password SET NOT NULL');
         }
 
         Schema::table('users', function (Blueprint $table) {
@@ -50,4 +41,3 @@ return new class extends Migration
         });
     }
 };
-

@@ -17,14 +17,14 @@
 - 后端框架：Laravel 12（PHP 8.2）。
 - 后台面板：Filament v4（计划两套面板：admin/enterprise）。
 - 前端构建：Vite 7 + Tailwind CSS 4。
-- 数据库：SQLite（默认，开发）；可迁移至 MySQL/PostgreSQL。
+- 数据库：MySQL 8.x。
 - 依赖管理：Composer（PHP），npm（前端）。
 - 本地开发：
   - 安装依赖：`composer install && npm install`
   - 环境：复制 `.env.example` 为 `.env`，`php artisan key:generate`
   - 迁移：`php artisan migrate`
   - 一键多进程：`composer dev`（serve/queue/logs/vite）
-  - 测试：`composer test`（PHPUnit 11，内存 SQLite）
+- 测试：`composer test`（PHPUnit 11，基于 MySQL 的独立测试库）
 
 
 ## 3) 认证与角色（已确认的关键决策）
@@ -35,7 +35,7 @@
   - `enterprise_admin`（企业）：仅管理所属企业数据与功能。
   - `farmer`（蜂农）：小程序端用户。
 - 用户统一表：`users`（统一存储身份信息）。
-  - 小程序用户：在 `users` 表中保存 `openid`（唯一、可空）、`unionid?`、`session_key`（加密存储）。
+  - 小程序用户：在 `users` 表中保存 `openid`（唯一、可空）、`unionid?`。
   - 管理员/企业用户：上述字段留空。
 - 企业归属：不在 `users` 上存放 `enterprise_id`。改为企业关联用户：
   - `enterprises.user_id` 指向企业“主账号”用户（可为空，创建后再指派）。
@@ -45,22 +45,22 @@
 — 补充（与小程序对齐）
 - 鉴权与手机号：手机号仅作为业务字段（联系/匹配），不参与登录鉴权；鉴权使用 Sanctum Token。
 - 登录与绑定接口：
-  - `POST /api/auth/wechat/login`：入参 `{ code }`；返回 `{ token, user }`。当 `WECHAT_MOCK=true` 时基于 code 生成稳定 `openid` 与 `session_key`（加密存储）。
+  - `POST /api/auth/wechat/login`：入参 `{ code }`；返回 `{ token, user }`。依赖微信官方接口进行 `code2session` 校验。
   - `POST /api/auth/wechat/bind-phone`：入参 `{ phone_code }`（微信获取手机号返回码）；返回 `{ phone }`；需携带登录 Token。
 
 
 ## 4) 领域模型（初版草案，供实现参考）
 - 用户与组织
-  - `users`：通用用户主体（`role`、昵称/头像、可空 `openid` 唯一、`unionid?`、`session_key` 加密、`last_login_at`）。
+  - `users`：通用用户主体（`role`、昵称/头像、可空 `openid` 唯一、`unionid?`、`last_login_at`）。
   - `enterprises`：企业资料、联系人、状态、`owner_user_id`（企业主账号）。
 - 检测与订单
   - `detection_codes`：采样码（检测号）。字段建议：`code` 唯一、`source_type=gift|self_paid`、`prefix`（如 `QY|ZF` 可配置）、`status=available|assigned|used|expired`、`assigned_user_id?`、`assigned_at?`、`used_at?`、`enterprise_id?`、索引与唯一约束保证并发安全。
-  - `orders`：自费订单（微信/人工）。`user_id`、`amount`、`status=pending|paid|failed|refunded`、`channel=wxpay|manual`、`trade_no?`、`paid_at?`、`detection_code_id?`（支付成功后分配）。
+  - `orders`：自费订单（人工，预留微信/支付宝）。`user_id`、`amount`、`status=pending|paid|failed|refunded`、`channel=manual|wxpay|alipay`、`trade_no?`、`paid_at?`、`detection_code_id?`（支付成功后分配）。
   - `detections`：检测主记录。`user_id`、`detection_code_id`、`sample_id?`、`province/city/district`（首期简化）、`submitted_at`、`status=pending|received|processing|completed`、`questionnaire(json)`、`contact_phone`。
   - `questionnaires`：如需拆表：`detection_id`、`answers(json)`、`filled_at`（也可内嵌于 `detections.questionnaire`）。
   - `diseases`：病种字典（SBV、IAPV、BQCV、AFB、EFB、微孢子虫、白垩病等）。
   - `detection_results`：检测结果明细（`detection_id`、`disease_id`、`result=positive|negative`、说明/建议）。
-  - `shipping_notifications`：邮寄通知（新增，与小程序“确认邮寄”对齐）。`detection_id`、`courier_company`、`tracking_no`、`shipped_at?`、`images(json)?`、`contact_phone`、`created_by`。
+  - `shipping_notifications`：邮寄通知（新增，与小程序“确认邮寄”对齐）。`detection_code_id`、`courier_company`、`tracking_no`、`shipped_at?`、唯一约束（`detection_code_id`+`tracking_no`）。
   - `payment_proofs`：支付凭证（开发/联调替代方案）。`order_id`、`method(text)`、`order_no?`、`amount`、`images(json)`、`remark?`、`status=pending|approved|rejected`、`reviewed_by/at`。
 - 推荐与产品
   - `products`：企业产品（名称、简介、链接、媒体）。
@@ -138,19 +138,25 @@
 - 资源命名：REST 优先，必要时用动词子路径表述动作（如 `/wechat/notify`）。
 - 推荐：按“检测号来源企业或自费”动态计算，尽量通过查询组合或缓存实现。
 - 日志与审计：关键动作写入审计日志（创建/审核/发放/状态变更）。
+  - 统一参考《审计与可观测性规划》（docs/specs/audit-observability.md），对检测码分配/使用、订单支付、邮寄提交等动作记审计。
+
+— 响应规范（统一标准）
+- 统一遵循《API 响应规范 v1.0》：`docs/specs/api-response-v1.md`
+- 错误码遵循《标准错误码清单 v1.0》：`docs/specs/error-codes-v1.md`
+- 前端展示参考《前端展示格式化清单 v1.0》：`docs/specs/frontend-formatting-cheatsheet.md`
+ - 资源形状说明：`docs/specs/api-shape.md`
 
 — 首期接口清单（与小程序联调）
 - 认证与资料：
-  - `POST /api/auth/wechat/login` → `{ token, user }`
+  - `POST /api/auth/wechat/login` → `{ token, user }`（依赖微信官方接口）
   - `POST /api/auth/wechat/bind-phone` → `{ phone }`
 - 检测流程：
-  - `POST /api/detection-codes/verify-bind` → 入参 `{ detection_number, phone }`，原子化置 `assigned` 并绑定用户，返回 `detection_id`
-  - `POST /api/detections/{id}/questionnaire` → `{ answers: {...} }` 或表单字段；成功后置码为 `used`
-  - `POST /api/detections/{id}/shipping` → `{ courier_company, tracking_no, shipped_at?, images[]?, phone }`
-- 自费下单与回调：
-  - `POST /api/orders`（创建） → 返回支付参数或占位信息
-  - `POST /api/wechat/pay/notify`（正式支付回调） → 标记订单 `paid` 并分配 `ZF-` 检测号
-  - `POST /api/orders/{id}/payment-proof`（开发替代） → 上传凭证，后台审核通过后完成分配
+  - `POST /api/detection-codes/verify-bind` → 入参 `{ detection_number, phone }`，原子化置 `assigned` 并绑定用户，返回 `detection_code_id`
+  - `POST /api/surveys` → `{ detection_code_id, ...问卷字段 }`；成功后置码为 `used`
+  - `POST /api/shipping-notifications` → `{ detection_number, courier_company, tracking_no, shipped_at? }`
+- 自费下单与人工审核：
+  - `POST /api/orders`（创建） → 返回占位信息
+  - `POST /api/orders/{id}/payment-proof` → 上传凭证，后台审核通过后分配检测号并置订单 `paid`
 - 检测结果：
   - `GET /api/detections`（分页） → 列表包含：`id`、`detectionId`、`sampleId?`、`submitTime`、`status`/`statusText`、`recommendation{ productId?, productName, brief, url?, source, targetType? }`
   - `GET /api/detections/{id}` → 明细含病种结果与推荐
@@ -166,27 +172,29 @@
   - 新增字段/表使用迁移；必要时添加唯一索引与检查约束以固化业务规则（如检测号唯一、手机号唯一、openid 唯一）。
   - 涉及状态机的流程（检测号使用）务必在事务内完成并保证原子性。
 - 面板资源：使用 Filament Resource 与 Relation Manager；遵循面板的导航结构与授权策略。
-- 安全：输入严格校验；上传文件校验类型与大小；敏感字段（如 `session_key`）加密保存。
-- 配置：所有外部依赖（微信、支付、存储等）通过 .env 配置，并提供开发环境 Mock 开关。
+- 安全：输入严格校验；上传文件校验类型与大小；敏感数据加密保存。
+- 配置：所有外部依赖（微信、支付、存储等）通过 .env 配置；微信登录需配置官方凭据。
 
 — 配置建议（可放 .env）
 - `DETCODE_PREFIX_SELF=ZF`、`DETCODE_PREFIX_ENTERPRISE=QY`、`DETCODE_RULE=self:date-seq`（示例）；
-- `WECHAT_MOCK=true|false`；支付网关开关与回调 URL。
+- 微信小程序：`WECHAT_MINI_APP_ID`、`WECHAT_MINI_APP_SECRET`（用于调用官方接口）。
 
 — 并发与一致性
 - `detection_codes.code` 唯一索引；`assigned`/`used` 流转置于同一事务，必要时使用“状态 + 唯一约束”防止重复使用。
-- 订单支付成功到检测号分配在一个事务或幂等处理内完成；支付回调需幂等。
+- 订单支付成功到检测号分配在一个事务或幂等处理内完成；人工审核流程需幂等（同一订单仅能成功一次）。
 
 
 ## 9) 测试与验证
 - 测试优先靠近改动：为关键领域服务与控制器添加 Feature/Unit 测试。
-- 使用内存 SQLite 运行测试（`phpunit.xml` 已配置）。
+- 使用 MySQL 独立测试库运行测试（`phpunit.xml` 已配置或通过环境变量覆盖）；需预先创建测试数据库（默认 `bee_guard_test`）。
 - 不存在既有测试时，新增紧贴改动的最小必要测试；不要为不相关模块补测。
 
 
-## 10) 本地开发与 Mock
-- 微信登录在无外网时允许启用 Mock 驱动：根据 `WECHAT_MOCK=true` 生成可重复的 `openid`，便于联调。
-- 支付回调允许提供本地伪造通知端点，串通订单→分配检测号→问卷流程。
+## 10) 本地开发
+- 微信登录依赖微信官方接口（需配置 `WECHAT_MINI_APP_ID/SECRET`）。在无法接入微信接口的场景，可采用以下替代方式进行联调：
+  - 在数据库创建测试用户并手动发放 Sanctum Token（仅用于本地开发）。
+  - 使用已有 Token 进行业务流程联调（问卷、邮寄、订单与凭证等）。
+- （如未来接入支付网关）可提供本地伪造通知端点串通订单→分配检测号→问卷流程。
  - 开发替代方案：启用 `payment_proofs`，小程序上传支付截图与金额，后台审核通过后视同支付成功并分配 `ZF-` 检测号。
  - 疫情接口可在开发模式下返回基于地区与月份的“种子化”稳定假数据（便于前端演示与回归）。
 
@@ -203,11 +211,14 @@
 - 是否使用迁移而非直接改库？是否添加必要索引/约束？
 - 是否避免引入与任务无关的变更？
 - 是否提供了最小必要测试或说明验证步骤？
-- 是否将外部集成做成可配置并提供 Mock？
+- 是否将外部集成做成可配置？
  - 首批接口是否覆盖：登录、绑定手机号、检测号验证绑定、问卷提交、邮寄上报、订单与（回调/凭证）分配、结果查询、疫情分布/趋势？
  - `detection_codes` 原子化状态流与并发保护是否落实（事务+唯一约束/乐观锁）？
 
 
 ## 13) 变更记录
 - 2025-09-12：首版建立，整合产品需求与开发约束，明确“微信登录、三角色、两面板”的核心决策；沉淀数据模型与流程骨架。
-- 2025-09-12：补充与小程序对齐的接口与数据模型细化：新增登录/绑定手机号接口约定；完善检测号验证绑定、自费支付（正式回调与开发凭证）流程；补充 `shipping_notifications`、`payment_proofs` 表；明确结果返回结构与疫情接口形态；增加前缀/规则配置与并发一致性要求。
+- 2025-09-12：补充与小程序对齐的接口与数据模型细化：新增登录/绑定手机号接口约定；完善检测号验证绑定、自费支付（人工凭证审核）流程；补充 `shipping_notifications`、`payment_proofs` 表；明确结果返回结构与疫情接口形态；增加前缀/规则配置与并发一致性要求。
+ - 2025-09-17：精简微信登录相关描述，统一为官方接口 + 必需配置项，清理无关实现细节以避免歧义。
+- 资源形状说明（重要）：当前交互以“检测码”为锚点
+- 问卷/邮寄接口以检测码驱动（`detection_code_id` 或 `detection_number`），原因是在问卷阶段实验室尚未创建 `detections` 主记录，无法提供稳定 `detection.id`。检测结果展示以 `GET /api/detections`/`{id}` 进行。

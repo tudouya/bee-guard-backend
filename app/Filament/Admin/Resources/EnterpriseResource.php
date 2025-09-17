@@ -4,12 +4,16 @@ namespace App\Filament\Admin\Resources;
 
 use App\Filament\Admin\Resources\EnterpriseResource\Pages;
 use App\Models\Enterprise;
+use App\Services\Naming\EnterprisePrefixSuggester;
 use Filament\Forms;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Resources\Resource;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
+use Filament\Schemas\Components\Actions as SchemaActions;
+use Filament\Actions\Action;
+use Filament\Schemas\Components\Utilities\Set;
 use Filament\Tables;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
@@ -32,7 +36,17 @@ class EnterpriseResource extends Resource
                     TextInput::make('name')
                         ->label('Name')
                         ->required()
-                        ->maxLength(191),
+                        ->maxLength(191)
+                        ->afterStateUpdated(function (string $state, Set $set, callable $get) {
+                            // 当企业名称变化时，如 code_prefix 为空，则自动给出建议
+                            $current = (string) ($get('code_prefix') ?? '');
+                            if ($current === '') {
+                                $suggest = app(EnterprisePrefixSuggester::class)->suggest($state);
+                                if ($suggest !== '') {
+                                    $set('code_prefix', $suggest);
+                                }
+                            }
+                        }),
                     Select::make('owner_user_id')
                         ->label('Owner User')
                         // 使用实际存在的列进行 titleAttribute，避免 SQL 报错
@@ -57,6 +71,27 @@ class EnterpriseResource extends Resource
 
             Section::make('Settings')
                 ->schema([
+                    SchemaActions::make([
+                        Action::make('suggestPrefix')
+                            ->label('生成建议前缀')
+                            ->icon('heroicon-o-light-bulb')
+                            ->action(function (Set $set, callable $get) {
+                                $name = (string) ($get('name') ?? '');
+                                if ($name !== '') {
+                                    $suggest = app(EnterprisePrefixSuggester::class)->suggest($name);
+                                    if ($suggest !== '') {
+                                        $set('code_prefix', $suggest);
+                                    }
+                                }
+                            }),
+                    ])->fullWidth(false),
+                    TextInput::make('code_prefix')
+                        ->label('Code Prefix (Optional)')
+                        ->helperText('仅大写字母/数字/连字符，1-16 位。赠送码优先使用企业前缀，留空则使用系统默认（QY）。')
+                        ->maxLength(16)
+                        ->regex('/^[A-Z0-9-]{1,16}$/')
+                        ->nullable()
+                        ->dehydrateStateUsing(fn ($state) => $state ? strtoupper($state) : null),
                     Select::make('status')
                         ->label('Status')
                         ->options([

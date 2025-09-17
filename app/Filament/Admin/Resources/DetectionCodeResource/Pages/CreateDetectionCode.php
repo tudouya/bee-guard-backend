@@ -25,9 +25,17 @@ class CreateDetectionCode extends CreateRecord
     protected function mutateFormDataBeforeCreate(array $data): array
     {
         $source = (string) ($data['source_type'] ?? 'self_paid');
-        $self = strtoupper((string) env('DETCODE_PREFIX_SELF', 'ZF'));
-        $gift = strtoupper((string) env('DETCODE_PREFIX_ENTERPRISE', 'QY'));
-        $data['prefix'] = $source === 'gift' ? $gift : $self;
+        if ($source === 'gift') {
+            $enterprisePrefix = null;
+            $enterpriseId = (int) ($data['enterprise_id'] ?? 0);
+            if ($enterpriseId > 0) {
+                $enterprise = \App\Models\Enterprise::query()->find($enterpriseId);
+                $enterprisePrefix = $enterprise?->code_prefix ?: null;
+            }
+            $data['prefix'] = $enterprisePrefix ?: DetectionCode::DEFAULT_PREFIX_GIFT;
+        } else {
+            $data['prefix'] = DetectionCode::DEFAULT_PREFIX_SELF;
+        }
         $data['code'] = $this->generateUniqueCode();
 
         // Enforce invariant at creation time:
