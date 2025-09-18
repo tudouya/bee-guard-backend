@@ -6,6 +6,7 @@ use App\Filament\Admin\Resources\UserResource\Pages;
 use App\Models\User;
 use Filament\Forms;
 use Filament\Schemas\Components\Section;
+use Filament\Actions\Action;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Select;
 use Filament\Resources\Resource;
@@ -32,7 +33,7 @@ class UserResource extends Resource
                 Section::make('Base Info')
                     ->schema([
                         TextInput::make('name')
-                            ->label('Display Name')
+                            ->label('Name')
                             ->maxLength(191),
                         TextInput::make('username')
                             ->label('Username')
@@ -85,6 +86,12 @@ class UserResource extends Resource
                             ->unique(ignoreRecord: true),
                         TextInput::make('nickname')
                             ->label('Nickname')
+                            ->suffixActions([
+                                Action::make('nickname-hint')
+                                    ->icon('heroicon-m-question-mark-circle')
+                                    ->tooltip('仅小程序端展示；Name 为正式名称')
+                                    ->disabled(),
+                            ])
                             ->maxLength(191)
                             ->nullable(),
                         TextInput::make('avatar')
