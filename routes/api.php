@@ -15,6 +15,7 @@ use App\Http\Controllers\Api\SurveysController;
 use App\Http\Controllers\Api\ShippingNotificationsController;
 use App\Http\Controllers\Api\RewardController;
 use App\Http\Controllers\Api\DetectionsController;
+use App\Http\Controllers\Api\ProfileController;
 
 // Knowledge base (public)
 Route::prefix('knowledge')->group(function () {
@@ -38,6 +39,12 @@ Route::prefix('community')->group(function () {
 });
 
 Route::middleware('auth:sanctum')->group(function () {
+    // Profile
+    Route::get('profile', [ProfileController::class, 'show']);
+    Route::patch('profile', [ProfileController::class, 'update']);
+    // Optional alias to reduce client fallbacks
+    Route::post('profile', [ProfileController::class, 'update']);
+
     // Uploads (images)
     Route::post('uploads', [UploadController::class, 'store']);
 

@@ -16,7 +16,9 @@ class UploadController extends Controller
         $file = $request->file('file');
 
         $disk = 'public';
-        $path = $file->store('payment-proofs/'.date('Ymd'), $disk);
+        $scene = (string) ($request->input('scene') ?? '');
+        $baseDir = ($scene === 'avatar') ? 'avatars' : 'payment-proofs';
+        $path = $file->store($baseDir.'/'.date('Ymd'), $disk);
         $upload = Upload::query()->create([
             'user_id' => $user?->id,
             'disk' => $disk,
@@ -28,7 +30,11 @@ class UploadController extends Controller
         return response()->json([
             'code' => 0,
             'message' => 'ok',
-            'data' => [ 'id' => $upload->id, 'url' => Storage::disk($disk)->url($path) ],
+            'data' => [
+                'id' => $upload->id,
+                'url' => Storage::disk($disk)->url($path),
+                'path' => $path, // relative storage path, e.g., avatars/20250918/xxx.jpg
+            ],
         ]);
     }
 }
