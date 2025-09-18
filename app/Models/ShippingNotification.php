@@ -16,6 +16,7 @@ class ShippingNotification extends Model
         'courier_company',
         'tracking_no',
         'shipped_at',
+        'contact_phone',
     ];
 
     protected $casts = [
@@ -32,4 +33,3 @@ class ShippingNotification extends Model
         return $this->belongsTo(DetectionCode::class);
     }
 }
-

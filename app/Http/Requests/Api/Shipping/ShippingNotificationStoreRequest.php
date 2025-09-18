@@ -17,7 +17,7 @@ class ShippingNotificationStoreRequest extends FormRequest
             'courier_company' => ['required','string','in:'.implode(',', array_map(fn($v)=>str_replace(',', '，', $v), $couriers))],
             'tracking_no' => ['required','string','regex:/^[A-Za-z0-9-]{6,}$/','max:64'],
             'shipped_at' => ['nullable','date_format:Y-m-d'],
+            'phone' => ['required','string','regex:/^1[3-9]\d{9}$/'],
         ];
     }
 }
-

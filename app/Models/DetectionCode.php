@@ -74,13 +74,15 @@ class DetectionCode extends Model
                 $code->assigned_at = null;
             }
 
-            // If there is an assignee, enforce status=assigned and assigned_at present
+            // If there is an assignee, ensure assigned_at exists.
+            // Do NOT override status when it's already 'used' or 'expired'.
             if (!empty($code->assigned_user_id)) {
-                if ($code->status !== 'assigned') {
-                    $code->status = 'assigned';
-                }
                 if (empty($code->assigned_at)) {
                     $code->assigned_at = now();
+                }
+                // Only coerce to 'assigned' when status is blank or explicitly 'available'.
+                if (in_array($code->status, [null, '', 'available'], true)) {
+                    $code->status = 'assigned';
                 }
             }
 

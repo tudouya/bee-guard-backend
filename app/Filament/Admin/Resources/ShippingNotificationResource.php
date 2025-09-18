@@ -42,6 +42,7 @@ class ShippingNotificationResource extends Resource
 
                 TextColumn::make('courier_company')->label('Courier')->sortable()->searchable(),
                 TextColumn::make('tracking_no')->label('Tracking No.')->sortable()->searchable(),
+                TextColumn::make('contact_phone')->label('Contact Phone')->searchable()->toggleable(),
 
                 TextColumn::make('detectionCodeFull')
                     ->label('Detection Code')
@@ -99,6 +100,9 @@ class ShippingNotificationResource extends Resource
 
                     Text::make('快递单号')->color('gray')->weight('medium')->columnSpan(1),
                     Text::make(fn (ShippingNotification $record) => (string) $record->tracking_no ?: '—')->columnSpan(3),
+
+                    Text::make('联系电话')->color('gray')->weight('medium')->columnSpan(1),
+                    Text::make(fn (ShippingNotification $record) => (string) $record->contact_phone ?: '—')->columnSpan(1),
                 ]),
 
             Section::make('检测信息')

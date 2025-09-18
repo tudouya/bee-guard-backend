@@ -56,6 +56,7 @@ class ShippingNotificationsController extends Controller
                     'courier_company' => $data['courier_company'],
                     'tracking_no' => $data['tracking_no'],
                     'shipped_at' => $data['shipped_at'] ?? null,
+                    'contact_phone' => $data['phone'],
                 ]);
             });
         } catch (QueryException $e) {
@@ -84,9 +85,9 @@ class ShippingNotificationsController extends Controller
                 'courierCompany' => $sn->courier_company,
                 'trackingNo' => $sn->tracking_no,
                 'shippedAt' => $sn->shipped_at?->format('Y-m-d'),
+                'contactPhone' => $sn->contact_phone,
                 'createdAt' => $sn->created_at->toDateTimeString(),
             ],
         ], 201);
     }
 }
-

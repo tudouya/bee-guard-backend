@@ -38,63 +38,7 @@ class DetectionCodesController extends Controller
         ]);
     }
 
-    /**
-     * Verify detection code for current user
-     */
-    public function verify(Request $request): JsonResponse
-    {
-        $request->validate([
-            'phone' => 'required|string|regex:/^1[3-9]\d{9}$/',
-            'detection_code' => 'required|string|max:64',
-        ]);
-
-        $user = $request->user();
-        $phone = $request->input('phone');
-        $inputCode = $request->input('detection_code');
-
-        // Find detection code by matching prefix + code combination
-        $detectionCode = DetectionCode::where('assigned_user_id', $user->id)
-            ->whereRaw("CONCAT(prefix, code) = ?", [$inputCode])
-            ->first();
-
-        if (!$detectionCode) {
-            throw ValidationException::withMessages([
-                'detection_code' => ['检测号不存在或不属于当前用户'],
-            ]);
-        }
-
-        // Check if code is expired
-        if ($detectionCode->status === 'expired') {
-            throw ValidationException::withMessages([
-                'detection_code' => ['检测号已过期'],
-            ]);
-        }
-
-        // Check if code is already used
-        if ($detectionCode->status === 'used') {
-            throw ValidationException::withMessages([
-                'detection_code' => ['检测号已使用'],
-            ]);
-        }
-
-        // Check if code is available for use (should be assigned)
-        if ($detectionCode->status !== 'assigned') {
-            throw ValidationException::withMessages([
-                'detection_code' => ['检测号状态异常'],
-            ]);
-        }
-
-        return response()->json([
-            'success' => true,
-            'message' => '检测号验证成功',
-            'data' => [
-                'detection_code_id' => $detectionCode->id,
-                'full_code' => $detectionCode->prefix . $detectionCode->code,
-                'source_type' => $detectionCode->source_type,
-                'phone' => $phone,
-            ],
-        ]);
-    }
+    
 
     /**
      * Verify and bind detection code to current user atomically (available -> assigned).
@@ -110,10 +54,12 @@ class DetectionCodesController extends Controller
         $user = $request->user();
         $phone = $request->input('phone');
         $full = $request->input('detection_number');
+        // 标准化：去短横线并转大写，保持与邮寄接口一致
+        $normalized = strtoupper(str_replace('-', '', $full));
 
-        return DB::transaction(function () use ($user, $phone, $full) {
-            // Try to bind if available
-            $code = DetectionCode::whereRaw("CONCAT(prefix, code) = ?", [$full])
+        return DB::transaction(function () use ($user, $phone, $normalized) {
+            // Try to bind if available (case-insensitive compare on prefix+code)
+            $code = DetectionCode::whereRaw('UPPER(CONCAT(prefix, code)) = ?', [$normalized])
                 ->lockForUpdate()
                 ->first();
 

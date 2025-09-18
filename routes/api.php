@@ -56,7 +56,6 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Detection Codes
     Route::get('detection-codes', [DetectionCodesController::class, 'index']);
-    Route::post('detection-codes/verify', [DetectionCodesController::class, 'verify']);
     Route::post('detection-codes/verify-bind', [DetectionCodesController::class, 'verifyBind']);
 
     // Surveys
