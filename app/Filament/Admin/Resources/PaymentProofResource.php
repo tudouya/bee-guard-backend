@@ -12,6 +12,7 @@ use Filament\Tables\Columns\ImageColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
+use Filament\Notifications\Notification;
 use Illuminate\Support\Facades\DB;
 
 class PaymentProofResource extends Resource
@@ -59,6 +60,20 @@ class PaymentProofResource extends Resource
                     ->color('success')
                     ->requiresConfirmation()
                     ->visible(fn (PaymentProof $record) => $record->status === 'pending')
+                    ->modalDescription(function () {
+                        $availableCount = DetectionCode::query()
+                            ->where('source_type', 'self_paid')
+                            ->where('status', 'available')
+                            ->count();
+
+                        if ($availableCount === 0) {
+                            return '⚠️ 警告：当前没有可用的自费检测码，请先生成后再审核。';
+                        } elseif ($availableCount < 10) {
+                            return "⚠️ 提醒：仅剩 {$availableCount} 个可用自费检测码。";
+                        }
+
+                        return '确认通过此支付凭证？';
+                    })
                     ->action(function (PaymentProof $record) {
                         DB::transaction(function () use ($record) {
                             $order = Order::query()->lockForUpdate()->findOrFail($record->order_id);
@@ -74,7 +89,14 @@ class PaymentProofResource extends Resource
                                 ->orderBy('id')
                                 ->first();
                             if (!$code) {
-                                abort(409, 'no_available_code');
+                                Notification::make()
+                                    ->title('审核失败')
+                                    ->body('无可用自费检测码，请先生成 Self Paid 类型检测码')
+                                    ->danger()
+                                    ->persistent()
+                                    ->send();
+
+                                return; // 直接返回，不继续执行
                             }
 
                             // conditional update
