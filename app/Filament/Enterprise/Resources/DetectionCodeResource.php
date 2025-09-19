@@ -51,7 +51,8 @@ class DetectionCodeResource extends Resource
             ])
             ->actions([
                 Action::make('assignToPhone')
-                    ->label('分配给手机号')
+                    ->label('分配检测码')
+                    ->modalHeading('分配检测码')
                     ->icon('heroicon-o-user-plus')
                     ->form([
                         TextInput::make('phone')
@@ -62,9 +63,12 @@ class DetectionCodeResource extends Resource
                     ])
                     ->action(function (DetectionCode $record, array $data) {
                         $user = auth()->user();
-                        $enterpriseIds = Enterprise::query()->where('owner_user_id', $user->id)->pluck('id')->all();
-                        if (empty($enterpriseIds) || !in_array((int) $record->enterprise_id, array_map('intval', $enterpriseIds), true)) {
-                            throw ValidationException::withMessages(['phone' => ['无权分配该检测码']]);
+                        $isSuper = $user && (string) $user->role === 'super_admin';
+                        if (! $isSuper) {
+                            $enterpriseIds = Enterprise::query()->where('owner_user_id', $user->id)->pluck('id')->all();
+                            if (empty($enterpriseIds) || !in_array((int) $record->enterprise_id, array_map('intval', $enterpriseIds), true)) {
+                                throw ValidationException::withMessages(['phone' => ['无权分配该检测码']]);
+                            }
                         }
 
                         $phone = (string) ($data['phone'] ?? '');
@@ -109,6 +113,10 @@ class DetectionCodeResource extends Resource
             ->headerActions([])
             ->modifyQueryUsing(function ($query) {
                 $user = auth()->user();
+                $isSuper = $user && (string) $user->role === 'super_admin';
+                if ($isSuper) {
+                    return; // 超管查看所有企业检测码
+                }
                 $enterpriseIds = Enterprise::query()->where('owner_user_id', $user->id)->pluck('id');
                 $query->whereIn('enterprise_id', $enterpriseIds);
             });
@@ -121,4 +129,3 @@ class DetectionCodeResource extends Resource
         ];
     }
 }
-

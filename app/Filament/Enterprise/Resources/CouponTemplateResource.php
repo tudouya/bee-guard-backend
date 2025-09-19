@@ -184,9 +184,15 @@ class CouponTemplateResource extends Resource
     {
         $query = parent::getEloquentQuery();
 
-        $userId = auth()->id();
-        if ($userId) {
-            $query->where('submitted_by', $userId);
+        $user = auth()->user();
+        $isSuper = $user && (string) $user->role === 'super_admin';
+        if (! $isSuper) {
+            $userId = $user?->getAuthIdentifier();
+            if ($userId) {
+                $query->where('submitted_by', $userId);
+            } else {
+                $query->whereRaw('1=0'); // 未登录保护
+            }
         }
 
         return $query;
@@ -194,17 +200,38 @@ class CouponTemplateResource extends Resource
 
     public static function canCreate(): bool
     {
+        $user = auth()->user();
+        if ($user && (string) $user->role === 'super_admin') {
+            return true;
+        }
         return filled(self::getEnterpriseOptions());
     }
 
     public static function canEdit(Model $record): bool
     {
-        return parent::canEdit($record) && self::canEditRecord($record);
+        $user = auth()->user();
+        $isSuper = $user && (string) $user->role === 'super_admin';
+        if ($isSuper) {
+            return parent::canEdit($record) && self::canEditRecord($record);
+        }
+
+        // 企业用户仅可编辑：自身提交、且记录企业归属自己，且状态允许
+        $ownSubmit = (int) ($record->submitted_by ?? 0) === (int) ($user?->getAuthIdentifier() ?? 0);
+        $ownEnterprise = (int) optional($record->enterprise)->owner_user_id === (int) ($user?->getAuthIdentifier() ?? 0);
+        return parent::canEdit($record) && self::canEditRecord($record) && $ownSubmit && $ownEnterprise;
     }
 
     public static function canDelete(Model $record): bool
     {
-        return parent::canDelete($record) && self::canDeleteRecord($record);
+        $user = auth()->user();
+        $isSuper = $user && (string) $user->role === 'super_admin';
+        if ($isSuper) {
+            return parent::canDelete($record) && self::canDeleteRecord($record);
+        }
+
+        $ownSubmit = (int) ($record->submitted_by ?? 0) === (int) ($user?->getAuthIdentifier() ?? 0);
+        $ownEnterprise = (int) optional($record->enterprise)->owner_user_id === (int) ($user?->getAuthIdentifier() ?? 0);
+        return parent::canDelete($record) && self::canDeleteRecord($record) && $ownSubmit && $ownEnterprise;
     }
 
     protected static function getEnterpriseOptions(): array
@@ -216,11 +243,13 @@ class CouponTemplateResource extends Resource
             return [];
         }
 
-        return Enterprise::query()
-            ->where('owner_user_id', $user->getAuthIdentifier())
-            ->orderBy('name')
-            ->pluck('name', 'id')
-            ->toArray();
+        $isSuper = (string) $user->role === 'super_admin';
+        $query = Enterprise::query();
+        if (! $isSuper) {
+            $query->where('owner_user_id', $user->getAuthIdentifier());
+        }
+
+        return $query->orderBy('name')->pluck('name', 'id')->toArray();
     }
 
     protected static function platformOptions(): array
