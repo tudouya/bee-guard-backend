@@ -19,6 +19,7 @@ use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 use Illuminate\Validation\Rule;
+use Filament\Schemas\Components\Utilities\Set;
 
 class RecommendationRuleResource extends Resource
 {
@@ -42,7 +43,15 @@ class RecommendationRuleResource extends Resource
                     ])
                     ->inline()
                     ->default('global')
-                    ->required(),
+                    ->required()
+                    ->live()
+                    ->afterStateUpdated(function (string $state, Set $set, callable $get) {
+                        // Set sensible tier defaults when switching scope if tier was untouched
+                        $current = (int) ($get('tier') ?? 0);
+                        if ($current === 0 || $current === 10 || $current === 20) {
+                            $set('tier', $state === 'enterprise' ? 10 : 20);
+                        }
+                    }),
 
                 Select::make('enterprise_id')
                     ->label('Enterprise')
@@ -95,6 +104,20 @@ class RecommendationRuleResource extends Resource
                 ]),
             ])->columns(1),
 
+            Section::make('Ranking & Promotion')->schema([
+                Toggle::make('sponsored')
+                    ->label('Sponsored (Promoted)')
+                    ->default(false)
+                    ->helperText('Mark as paid promotion. You can also adjust tier to control cross-scope ordering.'),
+                TextInput::make('tier')
+                    ->label('Tier (smaller sorts first)')
+                    ->numeric()
+                    ->default(fn (callable $get) => $get('scope_type') === 'enterprise' ? 10 : 20)
+                    ->required()
+                    ->minValue(0)
+                    ->helperText('Default: 10 for enterprise, 20 for global. Set smaller to rank higher.'),
+            ])->columns(2),
+
             Section::make('Activation')
                 ->schema([
                     Toggle::make('active')
@@ -105,6 +128,10 @@ class RecommendationRuleResource extends Resource
                         DateTimePicker::make('ends_at')->label('Ends At')->seconds(false),
                     ]),
                 ]),
+            // 使用说明：为避免组件兼容性问题，这里用简要占位说明，详细说明见列表页「规则说明」按钮
+            Section::make('使用说明（简要）')
+                ->description('企业优先（默认：Enterprise Tier=10，全局 Tier=20）；赞助可将 Tier 调小以“置顶”。详细说明见列表页右上角「规则说明」。')
+                ->schema([]),
         ]);
     }
 
@@ -119,6 +146,8 @@ class RecommendationRuleResource extends Resource
                 TextColumn::make('disease.name')->label('Disease')->searchable()->sortable(),
                 TextColumn::make('product.name')->label('Product')->searchable()->sortable(),
                 TextColumn::make('priority')->sortable(),
+                TextColumn::make('tier')->sortable()->label('Tier'),
+                TextColumn::make('sponsored')->badge()->formatStateUsing(fn ($s) => $s ? 'sponsored' : 'normal')->color(fn ($s) => $s ? 'warning' : 'gray'),
                 TextColumn::make('active')->badge()->formatStateUsing(fn ($state) => $state ? 'active' : 'inactive'),
                 TextColumn::make('starts_at')->dateTime()->label('Starts')->sortable(),
                 TextColumn::make('ends_at')->dateTime()->label('Ends')->sortable(),

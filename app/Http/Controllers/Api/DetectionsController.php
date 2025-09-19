@@ -7,6 +7,7 @@ use App\Models\Detection;
 use App\Models\Disease;
 use Illuminate\Http\Request;
 use Illuminate\Support\Arr;
+use App\Services\Recommendation\RecommendationEngine;
 
 class DetectionsController extends Controller
 {
@@ -51,6 +52,10 @@ class DetectionsController extends Controller
                 'statusText' => $this->statusText($d->status),
                 'positiveCount' => count($positives),
                 'positives' => array_values($positives),
+                // TODO(list-preview): 列表页单条精简推荐预览
+                // 使用 RecommendationEngine::firstRecommendationForDetection($d, $positives)
+                // 取“首条命中”（规则层按 tier→priority；gift：企业/全局合并；兜底映射先本企业再任意）。
+                // 当前暂不返回，保持空对象，后续按需要启用。
                 'recommendation' => new \stdClass(),
             ];
         })->values();
@@ -71,7 +76,7 @@ class DetectionsController extends Controller
         $user = $request->user();
 
         $d = Detection::query()
-            ->with(['detectionCode:id,prefix,code'])
+            ->with(['detectionCode:id,prefix,code,source_type,enterprise_id'])
             ->where('user_id', $user->id)
             ->findOrFail($id);
 
@@ -91,6 +96,9 @@ class DetectionsController extends Controller
         }
 
         $positives = $this->computePositives($d);
+        // Build recommendations via rules and mappings
+        $engine = app(RecommendationEngine::class);
+        $recommendations = $engine->recommendForDetection($d, $positives);
 
         return response()->json([
             'id' => $d->id,
@@ -111,7 +119,7 @@ class DetectionsController extends Controller
             'results' => $results,
             'positiveCount' => count($positives),
             'positives' => array_values($positives),
-            'recommendations' => [],
+            'recommendations' => $recommendations,
         ]);
     }
 

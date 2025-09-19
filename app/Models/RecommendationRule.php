@@ -17,6 +17,8 @@ class RecommendationRule extends Model
         'disease_id',
         'product_id',
         'priority',
+        'tier',
+        'sponsored',
         'active',
         'starts_at',
         'ends_at',
@@ -24,6 +26,7 @@ class RecommendationRule extends Model
 
     protected $casts = [
         'active' => 'boolean',
+        'sponsored' => 'boolean',
         'starts_at' => 'datetime',
         'ends_at' => 'datetime',
     ];
@@ -43,4 +46,3 @@ class RecommendationRule extends Model
         return $this->belongsTo(Product::class);
     }
 }
-
