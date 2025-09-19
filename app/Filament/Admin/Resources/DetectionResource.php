@@ -161,6 +161,15 @@ class DetectionResource extends Resource
         return $table
             ->columns([
                 TextColumn::make('id')->sortable()->toggleable(),
+                TextColumn::make('detectionCodeFull')
+                    ->label('检测码')
+                    ->getStateUsing(fn ($record) => optional($record->detectionCode)->prefix . optional($record->detectionCode)->code)
+                    ->searchable(query: function ($query, $search) {
+                        $query->whereHas('detectionCode', function ($q) use ($search) {
+                            $q->whereRaw("CONCAT(prefix, code) LIKE ?", ['%' . $search . '%']);
+                        });
+                    })
+                    ->toggleable(),
                 TextColumn::make('sample_no')->label('样品编号')->searchable()->sortable(),
                 TextColumn::make('sample_type')->label('样品类型')->badge()->toggleable(),
                 TextColumn::make('sampled_at')->label('取样时间')->dateTime()->sortable(),
@@ -213,40 +222,49 @@ class DetectionResource extends Resource
                 TextColumn::make('created_at')->dateTime()->sortable(),
             ])
             ->filters([
+                \Filament\Tables\Filters\Filter::make('missing_sample_no')
+                    ->label('待补样品编号')
+                    ->query(fn ($query) => $query->whereNull('sample_no')),
+
+                \Filament\Tables\Filters\Filter::make('only_pending')
+                    ->label('仅看待处理')
+                    ->query(fn ($query) => $query->where('status', 'pending')),
+
                 SelectFilter::make('status')->options([
                     'pending' => '待处理',
                     'received' => '已接收',
                     'processing' => '检测中',
                     'completed' => '已完成',
                 ]),
-                Filter::make('has_positive')
-                    ->label('含阳性')
-                    ->query(function ($query) {
-                        $fields = [
-                            'rna_iapv_level','rna_bqcv_level','rna_sbv_level','rna_abpv_level','rna_cbpv_level','rna_dwv_level',
-                            'dna_afb_level','dna_efb_level','dna_ncer_level','dna_napi_level','dna_cb_level',
-                        ];
-                        $query->where(function ($q) use ($fields) {
-                            foreach ($fields as $i => $f) {
-                                $method = $i === 0 ? 'whereNotNull' : 'orWhereNotNull';
-                                $q->{$method}($f);
-                            }
-                        });
-                    }),
-                // 每个病原的快速筛选（弱/中/强）
-                SelectFilter::make('rna_iapv_level')->label('IAPV')->options(['weak'=>'弱','medium'=>'中','strong'=>'强']),
-                SelectFilter::make('rna_bqcv_level')->label('BQCV')->options(['weak'=>'弱','medium'=>'中','strong'=>'强']),
-                SelectFilter::make('rna_sbv_level')->label('SBV')->options(['weak'=>'弱','medium'=>'中','strong'=>'强']),
-                SelectFilter::make('rna_abpv_level')->label('ABPV')->options(['weak'=>'弱','medium'=>'中','strong'=>'强']),
-                SelectFilter::make('rna_cbpv_level')->label('CBPV')->options(['weak'=>'弱','medium'=>'中','strong'=>'强']),
-                SelectFilter::make('rna_dwv_level')->label('DWV')->options(['weak'=>'弱','medium'=>'中','strong'=>'强']),
-                SelectFilter::make('dna_afb_level')->label('AFB')->options(['weak'=>'弱','medium'=>'中','strong'=>'强']),
-                SelectFilter::make('dna_efb_level')->label('EFB')->options(['weak'=>'弱','medium'=>'中','strong'=>'强']),
-                SelectFilter::make('dna_ncer_level')->label('NCER')->options(['weak'=>'弱','medium'=>'中','strong'=>'强']),
-                SelectFilter::make('dna_napi_level')->label('NAPI')->options(['weak'=>'弱','medium'=>'中','strong'=>'强']),
-                SelectFilter::make('dna_cb_level')->label('CB')->options(['weak'=>'弱','medium'=>'中','strong'=>'强']),
             ])
             ->actions([
+                \Filament\Actions\Action::make('view_survey')
+                    ->label('查看问卷')
+                    ->icon('heroicon-o-clipboard-document-check')
+                    ->url(function ($record) {
+                        $surveyId = \App\Models\Survey::query()
+                            ->where('detection_code_id', $record->detection_code_id)
+                            ->latest('id')
+                            ->value('id');
+                        return $surveyId ? \App\Filament\Admin\Resources\SurveyResource::getUrl('view', ['record' => $surveyId]) : null;
+                    })
+                    ->hidden(function ($record) {
+                        return ! \App\Models\Survey::query()->where('detection_code_id', $record->detection_code_id)->exists();
+                    }),
+                \Filament\Actions\Action::make('view_shipping')
+                    ->label('查看邮寄')
+                    ->icon('heroicon-o-truck')
+                    ->url(function ($record) {
+                        $snId = \App\Models\ShippingNotification::query()
+                            ->where('detection_code_id', $record->detection_code_id)
+                            ->latest('id')
+                            ->value('id');
+                        if ($snId) {
+                            return \App\Filament\Admin\Resources\ShippingNotificationResource::getUrl('view', ['record' => $snId]);
+                        }
+                        $full = (optional($record->detectionCode)->prefix ?? '') . (optional($record->detectionCode)->code ?? '');
+                        return \App\Filament\Admin\Resources\ShippingNotificationResource::getUrl('index') . ($full ? ('?tableSearch=' . rawurlencode($full)) : '');
+                    }),
                 \Filament\Actions\EditAction::make(),
                 \Filament\Actions\DeleteAction::make(),
             ])
@@ -260,7 +278,8 @@ class DetectionResource extends Resource
                     ->icon('heroicon-o-arrow-up-tray')
                     ->disabled()
                     ->tooltip('等模板与字段稳定后提供导入'),
-            ]);
+            ])
+            ->modifyQueryUsing(fn ($query) => $query->with(['detectionCode']));
     }
 
     public static function getRelations(): array

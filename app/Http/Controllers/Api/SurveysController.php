@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Survey;
 use App\Models\DetectionCode;
+use App\Models\Detection;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Validation\ValidationException;
@@ -240,6 +241,29 @@ class SurveysController extends Controller
                 'status' => 'used',
                 'used_at' => now(),
             ]);
+
+            // 创建或补全 Detection 记录（幂等：同一检测码仅一条）
+            $existing = Detection::query()->where('detection_code_id', $detectionCode->id)->first();
+            if (!$existing) {
+                Detection::query()->create([
+                    'user_id' => $user->id,
+                    'detection_code_id' => $detectionCode->id,
+                    'sample_no' => null, // 由实验室后续补录
+                    'status' => 'pending',
+                    'submitted_at' => now(),
+                    'contact_phone' => $request->phone,
+                    'address_text' => $request->location_name,
+                ]);
+            } else {
+                // 保守补齐：不覆盖已有重要字段
+                $patch = [];
+                if (empty($existing->submitted_at)) $patch['submitted_at'] = now();
+                if (empty($existing->contact_phone)) $patch['contact_phone'] = $request->phone;
+                if (empty($existing->address_text) && !empty($request->location_name)) $patch['address_text'] = $request->location_name;
+                if (!empty($patch)) {
+                    $existing->update($patch);
+                }
+            }
 
             return response()->json([
                 'success' => true,

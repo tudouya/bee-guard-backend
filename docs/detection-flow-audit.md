@@ -20,6 +20,7 @@
   - 数据表：
     - `surveys`（database/migrations/2025_09_13_162606_create_surveys_table.php）
     - `detection_codes`（状态从 assigned → used）
+    - `detections`（问卷提交后自动创建一条记录，绑定 user 与 detection_code，状态 `pending`，submitted_at=now）
 
 - 邮寄提交（pages/detection/shipping/index）
   - API：`POST /api/shipping-notifications`
@@ -72,6 +73,7 @@
 
 - 问卷提交（pages/detection/survey/index.js:520）
   - 现状：`POST /api/surveys`，字段与后端规则一致；提交成功后跳转指南页。
+  - 后端行为更新：提交成功即创建 `detections` 记录（绑定用户与检测码），后台可直接在该记录上补录样品编号与结果。
   - 建议：提交成功后直接跳邮寄页并透传 `detectId`；或在指南页加跳转按钮并携带参数。
 
 - 邮寄提交（pages/detection/shipping/index.js:1, services/shipping.js:1）
