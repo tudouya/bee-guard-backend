@@ -59,7 +59,7 @@ class DetectionCodeResource extends Resource
                             ->label('手机号')
                             ->required()
                             ->rules(['regex:/^1[3-9]\d{9}$/'])
-                            ->placeholder('请输入11位手机号'),
+                            ->placeholder('请输入蜂农手机号'),
                     ])
                     ->action(function (DetectionCode $record, array $data) {
                         $user = auth()->user();
