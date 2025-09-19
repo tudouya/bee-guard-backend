@@ -26,7 +26,8 @@ class EditCouponTemplate extends EditRecord
     {
         parent::authorizeAccess();
 
-        abort_unless(CouponTemplateResource::canEditRecord($this->getRecord()), 403);
+        // 使用资源层的综合权限判断，防止 URL 直达越权
+        abort_unless(CouponTemplateResource::canEdit($this->getRecord()), 403);
     }
 
     protected function getSavedNotificationTitle(): ?string
