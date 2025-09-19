@@ -119,23 +119,55 @@ class DetectionCodeResource extends Resource
             ]),
 
             Section::make('Assignment (Optional)')->schema([
-                Grid::make(['default' => 1, 'md' => 3])->schema([
+                // Row 1: Assigned User alone for better readability
+                Grid::make(['default' => 1])->schema([
                     Select::make('assigned_user_id')
                         ->label('Assigned User')
-                        // 使用实际列作为 titleAttribute，避免 SQL 查询不存在的列
+                        ->helperText('按手机号/昵称/用户名/邮箱搜索，至少输入2个字符')
+                        // 保持关系绑定用于保存；但搜索改为远程检索，禁用预加载
                         ->relationship('assignedUser', 'name')
-                        ->getOptionLabelFromRecordUsing(fn ($record) => (string) ($record->display_name
-                            ?? $record->name
-                            ?? $record->username
-                            ?? $record->email
-                            ?? ''))
                         ->searchable()
-                        ->preload()
+                        ->getSearchResultsUsing(function (string $search) {
+                            $term = trim($search);
+                            if (mb_strlen($term) < 2) {
+                                return [];
+                            }
+                            $query = \App\Models\User::query()
+                                ->select(['id','phone','nickname','name','username','email'])
+                                ->where(function ($q) use ($term) {
+                                    $q->where('phone', 'like', $term.'%')
+                                      ->orWhere('nickname', 'like', '%'.$term.'%')
+                                      ->orWhere('username', 'like', '%'.$term.'%')
+                                      ->orWhere('email', 'like', '%'.$term.'%')
+                                      ->orWhere('name', 'like', '%'.$term.'%');
+                                })
+                                ->limit(20)
+                                ->get();
+                            $out = [];
+                            foreach ($query as $u) {
+                                $label = (string) ($u->nickname ?: ($u->name ?: ($u->username ?: ($u->email ?: ('#'.$u->id)))));
+                                if (filled($u->phone)) {
+                                    $label .= ' · '.$u->phone;
+                                }
+                                $out[$u->id] = $label;
+                            }
+                            return $out;
+                        })
+                        ->getOptionLabelUsing(function ($value): ?string {
+                            if (empty($value)) return null;
+                            $u = \App\Models\User::query()->select(['id','phone','nickname','name','username','email'])->find($value);
+                            if (!$u) return '#'.$value;
+                            $label = (string) ($u->nickname ?: ($u->name ?: ($u->username ?: ($u->email ?: ('#'.$u->id)))));
+                            return filled($u->phone) ? ($label.' · '.$u->phone) : $label;
+                        })
                         ->nullable(),
+                ]),
+                // Row 2: Timestamps in two columns
+                Grid::make(['default' => 1, 'md' => 2])->schema([
                     DateTimePicker::make('assigned_at')->label('Assigned At')->seconds(false),
                     DateTimePicker::make('used_at')->label('Used At')->seconds(false),
                 ]),
-            ])->collapsed(),
+            ]),
         ]);
     }
 
