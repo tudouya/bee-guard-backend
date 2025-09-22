@@ -4,7 +4,7 @@ namespace App\Filament\Admin\Resources;
 
 use App\Filament\Admin\Resources\DetectionCodeResource\Pages;
 use App\Models\DetectionCode;
-use Filament\Forms\Components\DateTimePicker;
+use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Radio;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
@@ -164,8 +164,8 @@ class DetectionCodeResource extends Resource
                 ]),
                 // Row 2: Timestamps in two columns
                 Grid::make(['default' => 1, 'md' => 2])->schema([
-                    DateTimePicker::make('assigned_at')->label('Assigned At')->seconds(false),
-                    DateTimePicker::make('used_at')->label('Used At')->seconds(false),
+                    DatePicker::make('assigned_at')->label('Assigned At')->native(false),
+                    DatePicker::make('used_at')->label('Used At')->native(false),
                 ]),
             ]),
         ]);
@@ -182,9 +182,9 @@ class DetectionCodeResource extends Resource
                 TextColumn::make('status')->badge()->sortable(),
                 TextColumn::make('enterprise.name')->label('Enterprise')->toggleable(),
                 TextColumn::make('assignedUser.display_name')->label('Assigned User')->toggleable(),
-                TextColumn::make('assigned_at')->dateTime()->sortable(),
-                TextColumn::make('used_at')->dateTime()->sortable(),
-                TextColumn::make('created_at')->dateTime()->sortable(),
+                TextColumn::make('assigned_at')->date()->sortable(),
+                TextColumn::make('used_at')->date()->sortable(),
+                TextColumn::make('created_at')->date()->sortable(),
             ])
             ->filters([
                 SelectFilter::make('source_type')->options([

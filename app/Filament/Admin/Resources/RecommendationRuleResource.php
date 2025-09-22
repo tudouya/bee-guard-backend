@@ -4,7 +4,7 @@ namespace App\Filament\Admin\Resources;
 
 use App\Filament\Admin\Resources\RecommendationRuleResource\Pages;
 use App\Models\RecommendationRule;
-use Filament\Forms\Components\DateTimePicker;
+use Filament\Forms\Components\DatePicker;
 use Filament\Schemas\Components\Grid;
 use Filament\Forms\Components\Radio;
 use Filament\Forms\Components\Toggle;
@@ -124,8 +124,8 @@ class RecommendationRuleResource extends Resource
                         ->label('Active')
                         ->default(true),
                     Grid::make(2)->schema([
-                        DateTimePicker::make('starts_at')->label('Starts At')->seconds(false),
-                        DateTimePicker::make('ends_at')->label('Ends At')->seconds(false),
+                        DatePicker::make('starts_at')->label('Starts At')->native(false),
+                        DatePicker::make('ends_at')->label('Ends At')->native(false),
                     ]),
                 ]),
             // 使用说明：为避免组件兼容性问题，这里用简要占位说明，详细说明见列表页「规则说明」按钮
@@ -149,8 +149,8 @@ class RecommendationRuleResource extends Resource
                 TextColumn::make('tier')->sortable()->label('Tier'),
                 TextColumn::make('sponsored')->badge()->formatStateUsing(fn ($s) => $s ? 'sponsored' : 'normal')->color(fn ($s) => $s ? 'warning' : 'gray'),
                 TextColumn::make('active')->badge()->formatStateUsing(fn ($state) => $state ? 'active' : 'inactive'),
-                TextColumn::make('starts_at')->dateTime()->label('Starts')->sortable(),
-                TextColumn::make('ends_at')->dateTime()->label('Ends')->sortable(),
+                TextColumn::make('starts_at')->date()->label('Starts')->sortable(),
+                TextColumn::make('ends_at')->date()->label('Ends')->sortable(),
             ])
             ->filters([
                 SelectFilter::make('scope_type')->options([

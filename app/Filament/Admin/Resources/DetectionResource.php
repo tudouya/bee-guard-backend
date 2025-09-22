@@ -7,7 +7,7 @@ use App\Models\Detection;
 use App\Models\DetectionCode;
 use App\Models\User;
 use Filament\Forms;
-use Filament\Forms\Components\DateTimePicker;
+use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
@@ -92,10 +92,10 @@ class DetectionResource extends Resource
 
             Section::make('Timeline')
                 ->schema([
-                    DateTimePicker::make('sampled_at')->label('取样时间')->seconds(false),
-                    DateTimePicker::make('tested_at')->label('检测完成时间')->seconds(false),
-                    DateTimePicker::make('reported_at')->label('报告时间')->seconds(false),
-                    DateTimePicker::make('submitted_at')->label('提交时间')->seconds(false),
+                    DatePicker::make('sampled_at')->label('取样时间')->native(false),
+                    DatePicker::make('tested_at')->label('检测完成时间')->native(false),
+                    DatePicker::make('reported_at')->label('报告时间')->native(false),
+                    DatePicker::make('submitted_at')->label('提交时间')->native(false),
                 ])->columns(2),
 
             Section::make('Report')

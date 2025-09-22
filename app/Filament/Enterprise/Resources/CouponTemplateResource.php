@@ -6,7 +6,7 @@ use App\Enums\CouponTemplateStatus;
 use App\Filament\Enterprise\Resources\CouponTemplateResource\Pages;
 use App\Models\CouponTemplate;
 use App\Models\Enterprise;
-use Filament\Forms\Components\DateTimePicker;
+use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
@@ -87,14 +87,14 @@ class CouponTemplateResource extends Resource
                         ->numeric()
                         ->nullable()
                         ->minValue(1),
-                    DateTimePicker::make('valid_from')
+                    DatePicker::make('valid_from')
                         ->label('有效期开始')
                         ->required()
-                        ->seconds(false),
-                    DateTimePicker::make('valid_until')
+                        ->native(false),
+                    DatePicker::make('valid_until')
                         ->label('有效期结束')
                         ->required()
-                        ->seconds(false)
+                        ->native(false)
                         ->afterOrEqual('valid_from'),
                     Textarea::make('usage_instructions')
                         ->label('使用说明')
