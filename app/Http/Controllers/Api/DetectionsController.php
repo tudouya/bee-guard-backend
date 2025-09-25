@@ -75,10 +75,31 @@ class DetectionsController extends Controller
     {
         $user = $request->user();
 
-        $d = Detection::query()
+        $builder = Detection::query()
             ->with(['detectionCode:id,prefix,code,source_type,enterprise_id'])
-            ->where('user_id', $user->id)
-            ->findOrFail($id);
+            ->where('user_id', $user->id);
+
+        $detectionNumber = $request->query('detectionNumber');
+        if (is_string($detectionNumber) && trim($detectionNumber) !== '') {
+            // Allow detail lookup by detection number while preserving user scoping
+            $normalized = strtoupper(str_replace('-', '', trim($detectionNumber)));
+
+            $d = $builder
+                ->whereHas('detectionCode', function ($query) use ($normalized) {
+                    $query->whereRaw('UPPER(CONCAT(prefix, code)) = ?', [$normalized]);
+                })
+                ->first();
+
+            if (!$d) {
+                abort(404);
+            }
+
+            if ($id > 0 && $id !== $d->id) {
+                abort(404);
+            }
+        } else {
+            $d = $builder->findOrFail($id);
+        }
 
         $diseaseNames = Disease::query()->pluck('name', 'code')->all();
 
