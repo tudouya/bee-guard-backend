@@ -8,6 +8,7 @@ use App\Filament\Admin\Resources\CommunityPostReplies\Schemas\CommunityPostReply
 use App\Filament\Admin\Resources\CommunityPostReplies\Schemas\CommunityPostReplyInfolist;
 use App\Filament\Admin\Resources\CommunityPostReplies\Tables\CommunityPostRepliesTable;
 use App\Models\CommunityPostReply;
+use App\Support\AdminNavigation;
 use BackedEnum;
 use UnitEnum;
 use Filament\Resources\Resource;
@@ -22,8 +23,9 @@ class CommunityPostReplyResource extends Resource
     protected static ?string $model = CommunityPostReply::class;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedRectangleStack;
-    protected static UnitEnum|string|null $navigationGroup = '社区管理';
+    protected static UnitEnum|string|null $navigationGroup = AdminNavigation::GROUP_COMMUNITY;
     protected static ?string $navigationLabel = '帖子回复';
+    protected static ?int $navigationSort = AdminNavigation::ORDER_COMMUNITY_REPLIES;
     protected static ?int $pendingCountCache = null;
 
     protected static ?string $recordTitleAttribute = 'id';

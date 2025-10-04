@@ -6,6 +6,7 @@ use App\Filament\Admin\Resources\DetectionResource\Pages;
 use App\Models\Detection;
 use App\Models\DetectionCode;
 use App\Models\User;
+use App\Support\AdminNavigation;
 use Filament\Forms;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Select;
@@ -27,14 +28,16 @@ class DetectionResource extends Resource
 
     protected static \BackedEnum|string|null $navigationIcon = 'heroicon-o-clipboard-document-check';
 
-    protected static ?string $navigationLabel = 'Detections';
+    protected static ?string $navigationLabel = '检测记录';
 
-    protected static \UnitEnum|string|null $navigationGroup = 'Detection';
+    protected static \UnitEnum|string|null $navigationGroup = AdminNavigation::GROUP_DETECTION_OPERATIONS;
+
+    protected static ?int $navigationSort = AdminNavigation::ORDER_DETECTIONS;
 
     public static function form(Schema $schema): Schema
     {
         return $schema->schema([
-            Section::make('绑定')
+            Section::make('绑定信息')
                 ->schema([
                     Select::make('detection_code_id')
                         ->label('检测码')
@@ -64,7 +67,7 @@ class DetectionResource extends Resource
                         ->dehydrated()
                         ->helperText('由检测码自动带出（如需修改，请联系管理员）'),
                 ])->columns(2),
-            Section::make('Sample')
+            Section::make('样品信息')
                 ->schema([
                     TextInput::make('sample_no')
                         ->label('样品编号')
@@ -90,7 +93,7 @@ class DetectionResource extends Resource
                         ->columnSpanFull(),
                 ])->columns(2),
 
-            Section::make('Timeline')
+            Section::make('时间线')
                 ->schema([
                     DatePicker::make('sampled_at')->label('取样时间')->native(false),
                     DatePicker::make('tested_at')->label('检测完成时间')->native(false),
@@ -98,7 +101,7 @@ class DetectionResource extends Resource
                     DatePicker::make('submitted_at')->label('提交时间')->native(false),
                 ])->columns(2),
 
-            Section::make('Report')
+            Section::make('报告与状态')
                 ->schema([
                     TextInput::make('tested_by')->label('检测人员/机构')->maxLength(64),
                     TextInput::make('report_no')->label('报告编号')->maxLength(64),

@@ -4,6 +4,7 @@ namespace App\Filament\Admin\Resources;
 
 use App\Filament\Admin\Resources\UserResource\Pages;
 use App\Models\User;
+use App\Support\AdminNavigation;
 use Filament\Forms;
 use Filament\Schemas\Components\Section;
 use Filament\Actions\Action;
@@ -22,45 +23,47 @@ class UserResource extends Resource
 
     protected static \BackedEnum|string|null $navigationIcon = 'heroicon-o-users';
 
-    protected static ?string $navigationLabel = 'Users';
+    protected static ?string $navigationLabel = '用户管理';
 
-    protected static \UnitEnum|string|null $navigationGroup = 'System';
+    protected static \UnitEnum|string|null $navigationGroup = AdminNavigation::GROUP_SYSTEM;
+
+    protected static ?int $navigationSort = AdminNavigation::ORDER_USERS;
 
     public static function form(Schema $schema): Schema
     {
         return $schema
             ->schema([
-                Section::make('Base Info')
+                Section::make('基础信息')
                     ->schema([
                         TextInput::make('name')
-                            ->label('Name')
+                            ->label('姓名')
                             ->maxLength(191),
                         TextInput::make('username')
-                            ->label('Username')
+                            ->label('用户名')
                             ->maxLength(191)
                             ->nullable()
                             ->unique(ignoreRecord: true),
                         TextInput::make('email')
-                            ->label('Email')
+                            ->label('邮箱')
                             ->email()
                             ->maxLength(191)
                             ->nullable()
                             ->unique(ignoreRecord: true),
                         Select::make('role')
-                            ->label('Role')
+                            ->label('角色')
                             ->options([
-                                'super_admin' => 'Super Admin',
-                                'enterprise_admin' => 'Enterprise Admin',
-                                'farmer' => 'Farmer',
+                                'super_admin' => '超管',
+                                'enterprise_admin' => '企业管理员',
+                                'farmer' => '蜂农',
                             ])
                             ->required()
                             ->native(false),
                     ])->columns(2),
 
-                Section::make('Credentials')
+                Section::make('登录凭证')
                     ->schema([
                         TextInput::make('password')
-                            ->label('Password')
+                            ->label('密码')
                             ->password()
                             ->revealable()
                             ->rule(function (callable $get) {
@@ -70,22 +73,22 @@ class UserResource extends Resource
                             ->dehydrated(fn ($state) => filled($state))
                             ->dehydrateStateUsing(fn ($state) => $state)
                             ->maxLength(191),
-                        TextInput::make('password_confirmation')
-                            ->label('Confirm Password')
+                       TextInput::make('password_confirmation')
+                            ->label('确认密码')
                             ->password()
                             ->revealable()
                             ->dehydrated(false),
                     ])->columns(2),
 
-                Section::make('WeChat (Optional)')
+                Section::make('微信信息（可选）')
                     ->schema([
                         TextInput::make('openid')
                             ->label('OpenID')
                             ->maxLength(64)
                             ->nullable()
                             ->unique(ignoreRecord: true),
-                        TextInput::make('nickname')
-                            ->label('Nickname')
+                       TextInput::make('nickname')
+                            ->label('微信昵称')
                             ->suffixActions([
                                 Action::make('nickname-hint')
                                     ->icon('heroicon-m-question-mark-circle')
@@ -94,8 +97,8 @@ class UserResource extends Resource
                             ])
                             ->maxLength(191)
                             ->nullable(),
-                        TextInput::make('avatar')
-                            ->label('Avatar URL')
+                       TextInput::make('avatar')
+                            ->label('头像链接')
                             ->maxLength(512)
                             ->nullable(),
                     ])->columns(3),
@@ -106,19 +109,28 @@ class UserResource extends Resource
     {
         return $table
             ->columns([
-                TextColumn::make('id')->sortable()->toggleable(),
-                TextColumn::make('display_name')->label('Name'),
-                TextColumn::make('username')->searchable()->toggleable(),
-                TextColumn::make('email')->searchable()->toggleable(),
-                TextColumn::make('role')->badge()->sortable(),
-                TextColumn::make('created_at')->dateTime()->sortable(),
+                TextColumn::make('id')->label('ID')->sortable()->toggleable(),
+                TextColumn::make('display_name')->label('姓名'),
+                TextColumn::make('username')->label('用户名')->searchable()->toggleable(),
+                TextColumn::make('email')->label('邮箱')->searchable()->toggleable(),
+                TextColumn::make('role')
+                    ->label('角色')
+                    ->badge()
+                    ->formatStateUsing(fn (?string $state) => match ($state) {
+                        'super_admin' => '超管',
+                        'enterprise_admin' => '企业管理员',
+                        'farmer' => '蜂农',
+                        default => $state,
+                    })
+                    ->sortable(),
+                TextColumn::make('created_at')->label('创建时间')->dateTime()->sortable(),
             ])
             ->filters([
                 Tables\Filters\SelectFilter::make('role')
                     ->options([
-                        'super_admin' => 'Super Admin',
-                        'enterprise_admin' => 'Enterprise Admin',
-                        'farmer' => 'Farmer',
+                        'super_admin' => '超管',
+                        'enterprise_admin' => '企业管理员',
+                        'farmer' => '蜂农',
                     ]),
             ])
             ->actions([

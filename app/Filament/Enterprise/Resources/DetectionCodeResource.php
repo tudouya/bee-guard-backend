@@ -5,6 +5,7 @@ namespace App\Filament\Enterprise\Resources;
 use App\Models\DetectionCode;
 use App\Models\Enterprise;
 use App\Models\User;
+use App\Support\EnterpriseNavigation;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Columns\TextColumn;
@@ -20,33 +21,44 @@ class DetectionCodeResource extends Resource
     protected static ?string $model = DetectionCode::class;
 
     protected static \BackedEnum|string|null $navigationIcon = 'heroicon-o-qr-code';
-    protected static ?string $navigationLabel = 'Detection Codes';
-    protected static \UnitEnum|string|null $navigationGroup = 'Business';
+    protected static ?string $navigationLabel = '检测码管理';
+    protected static \UnitEnum|string|null $navigationGroup = EnterpriseNavigation::GROUP_OPERATIONS;
+    protected static ?int $navigationSort = EnterpriseNavigation::ORDER_DETECTION_CODES;
 
     public static function table(Table $table): Table
     {
         return $table
             ->columns([
-                TextColumn::make('id')->sortable()->toggleable(),
+                TextColumn::make('id')->label('ID')->sortable()->toggleable(),
                 TextColumn::make('full_code')
-                    ->label('Code')
+                    ->label('检测号')
                     ->getStateUsing(fn ($record) => (string)($record->prefix.$record->code))
                     ->searchable(query: function ($query, $search) {
                         $query->whereRaw("CONCAT(prefix, code) LIKE ?", ['%'.$search.'%']);
                     })
                     ->sortable(),
-                TextColumn::make('status')->badge()->sortable(),
-                TextColumn::make('assignedUser.display_name')->label('Assigned User')->toggleable(),
-                TextColumn::make('assigned_at')->dateTime()->sortable(),
-                TextColumn::make('used_at')->dateTime()->sortable(),
-                TextColumn::make('created_at')->dateTime()->sortable(),
+                TextColumn::make('status')
+                    ->label('状态')
+                    ->badge()
+                    ->formatStateUsing(fn (?string $state) => match ($state) {
+                        'available' => '可用',
+                        'assigned' => '已分配',
+                        'used' => '已使用',
+                        'expired' => '已过期',
+                        default => $state,
+                    })
+                    ->sortable(),
+                TextColumn::make('assignedUser.display_name')->label('绑定用户')->toggleable(),
+                TextColumn::make('assigned_at')->label('分配时间')->dateTime()->sortable(),
+                TextColumn::make('used_at')->label('使用时间')->dateTime()->sortable(),
+                TextColumn::make('created_at')->label('创建时间')->dateTime()->sortable(),
             ])
             ->filters([
-                SelectFilter::make('status')->options([
-                    'available' => 'Available',
-                    'assigned' => 'Assigned',
-                    'used' => 'Used',
-                    'expired' => 'Expired',
+                SelectFilter::make('status')->label('状态')->options([
+                    'available' => '可用',
+                    'assigned' => '已分配',
+                    'used' => '已使用',
+                    'expired' => '已过期',
                 ]),
             ])
             ->actions([

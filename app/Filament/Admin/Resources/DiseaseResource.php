@@ -4,6 +4,7 @@ namespace App\Filament\Admin\Resources;
 
 use App\Filament\Admin\Resources\DiseaseResource\Pages;
 use App\Models\Disease;
+use App\Support\AdminNavigation;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Select;
@@ -21,51 +22,53 @@ class DiseaseResource extends Resource
 
     protected static \BackedEnum|string|null $navigationIcon = 'heroicon-o-beaker';
 
-    protected static ?string $navigationLabel = 'Diseases';
+    protected static ?string $navigationLabel = '病种字典';
 
-    protected static \UnitEnum|string|null $navigationGroup = 'Dictionary';
+    protected static \UnitEnum|string|null $navigationGroup = AdminNavigation::GROUP_KNOWLEDGE;
+
+    protected static ?int $navigationSort = AdminNavigation::ORDER_DISEASES;
 
     public static function form(Schema $schema): Schema
     {
         return $schema->schema([
-            Section::make('Basic')
+            Section::make('基础信息')
                 ->schema([
                     TextInput::make('code')
-                        ->label('Code')
+                        ->label('病种代码')
                         ->required()
                         ->maxLength(64)
                         ->unique(ignoreRecord: true),
                     TextInput::make('name')
-                        ->label('Name')
+                        ->label('病种名称')
                         ->required()
                         ->maxLength(191),
                     TextInput::make('brief')
-                        ->label('Brief')
+                        ->label('摘要')
                         ->maxLength(191),
                     Select::make('status')
-                        ->label('Status')
+                        ->label('状态')
                         ->options([
-                            'active' => 'Active',
-                            'hidden' => 'Hidden',
+                            'active' => '展示',
+                            'hidden' => '隐藏',
                         ])->default('active')->required(),
                     TextInput::make('sort')
-                        ->label('Sort')
+                        ->label('排序值')
                         ->numeric()
                         ->default(0),
                 ])->columns(2),
-            Section::make('Details')
+            Section::make('详情内容')
                 ->schema([
                     Textarea::make('description')
-                        ->label('Description')
+                        ->label('病种描述')
                         ->rows(4),
                     Textarea::make('symptom')
-                        ->label('Symptom')
+                        ->label('症状表现')
                         ->rows(3),
                     Textarea::make('transmit')
-                        ->label('Transmit')
+                        ->label('传播途径')
                         ->rows(3),
                     Textarea::make('prevention')
-                        ->label('Prevention')
+                        ->label('防控建议')
                         ->rows(3),
                 ])->columns(2),
         ]);
@@ -80,13 +83,21 @@ class DiseaseResource extends Resource
                 }
             ]))
             ->columns([
-                TextColumn::make('id')->sortable()->toggleable(),
-                TextColumn::make('code')->searchable()->sortable(),
-                TextColumn::make('name')->searchable()->sortable(),
-                TextColumn::make('published_articles_count')->label('Published Articles')->sortable(),
-                TextColumn::make('status')->badge()->sortable(),
-                TextColumn::make('sort')->sortable(),
-                TextColumn::make('updated_at')->dateTime()->label('Updated')->sortable(),
+                TextColumn::make('id')->label('ID')->sortable()->toggleable(),
+                TextColumn::make('code')->label('病种代码')->searchable()->sortable(),
+                TextColumn::make('name')->label('病种名称')->searchable()->sortable(),
+                TextColumn::make('published_articles_count')->label('发布文章数')->sortable(),
+                TextColumn::make('status')
+                    ->label('状态')
+                    ->badge()
+                    ->formatStateUsing(fn (?string $state) => match ($state) {
+                        'active' => '展示',
+                        'hidden' => '隐藏',
+                        default => $state,
+                    })
+                    ->sortable(),
+                TextColumn::make('sort')->label('排序值')->sortable(),
+                TextColumn::make('updated_at')->dateTime()->label('更新时间')->sortable(),
             ])
             ->filters([])
             ->actions([

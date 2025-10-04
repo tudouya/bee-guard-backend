@@ -5,6 +5,7 @@ namespace App\Filament\Admin\Resources;
 use App\Filament\Admin\Resources\EnterpriseResource\Pages;
 use App\Models\Enterprise;
 use App\Services\Naming\EnterprisePrefixSuggester;
+use App\Support\AdminNavigation;
 use Filament\Forms;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
@@ -24,17 +25,19 @@ class EnterpriseResource extends Resource
 
     protected static \BackedEnum|string|null $navigationIcon = 'heroicon-o-building-office-2';
 
-    protected static ?string $navigationLabel = 'Enterprises';
+    protected static ?string $navigationLabel = '企业管理';
 
-    protected static \UnitEnum|string|null $navigationGroup = 'System';
+    protected static \UnitEnum|string|null $navigationGroup = AdminNavigation::GROUP_SYSTEM;
+
+    protected static ?int $navigationSort = AdminNavigation::ORDER_ENTERPRISES;
 
     public static function form(Schema $schema): Schema
     {
         return $schema->schema([
-            Section::make('Base Info')
+            Section::make('基础信息')
                 ->schema([
                     TextInput::make('name')
-                        ->label('Name')
+                        ->label('企业名称')
                         ->required()
                         ->maxLength(191)
                         ->afterStateUpdated(function (string $state, Set $set, callable $get) {
@@ -47,8 +50,8 @@ class EnterpriseResource extends Resource
                                 }
                             }
                         }),
-                    Select::make('owner_user_id')
-                        ->label('Owner User')
+                   Select::make('owner_user_id')
+                        ->label('主账号')
                         // 使用实际存在的列进行 titleAttribute，避免 SQL 报错
                         ->relationship('owner', 'name')
                         // 仍然显示友好的名称（基于访问器）
@@ -58,18 +61,18 @@ class EnterpriseResource extends Resource
                         ->nullable(),
                 ])->columns(2),
 
-            Section::make('Contact')
+            Section::make('联系人')
                 ->schema([
                     TextInput::make('contact_name')
-                        ->label('Contact Name')
+                        ->label('联系人姓名')
                         ->maxLength(191),
                     TextInput::make('contact_phone')
-                        ->label('Contact Phone')
+                        ->label('联系电话')
                         ->tel()
                         ->maxLength(32),
                 ])->columns(2),
 
-            Section::make('Settings')
+            Section::make('设置')
                 ->schema([
                     SchemaActions::make([
                         Action::make('suggestPrefix')
@@ -86,17 +89,17 @@ class EnterpriseResource extends Resource
                             }),
                     ])->fullWidth(false),
                     TextInput::make('code_prefix')
-                        ->label('Code Prefix (Optional)')
+                        ->label('检测号前缀（可选）')
                         ->helperText('仅大写字母/数字/连字符，1-16 位。赠送码优先使用企业前缀，留空则使用系统默认（QY）。')
                         ->maxLength(16)
                         ->regex('/^[A-Z0-9-]{1,16}$/')
                         ->nullable()
                         ->dehydrateStateUsing(fn ($state) => $state ? strtoupper($state) : null),
-                    Select::make('status')
-                        ->label('Status')
+                   Select::make('status')
+                        ->label('状态')
                         ->options([
-                            'active' => 'Active',
-                            'inactive' => 'Inactive',
+                            'active' => '启用',
+                            'inactive' => '停用',
                         ])
                         ->required()
                         ->native(false),
@@ -108,18 +111,26 @@ class EnterpriseResource extends Resource
     {
         return $table
             ->columns([
-                TextColumn::make('id')->sortable()->toggleable(),
-                TextColumn::make('name')->searchable()->sortable(),
-                TextColumn::make('owner.display_name')->label('Owner')->toggleable(),
-                TextColumn::make('contact_phone')->label('Phone')->toggleable(),
-                TextColumn::make('status')->badge()->sortable(),
-                TextColumn::make('created_at')->dateTime()->sortable(),
+                TextColumn::make('id')->label('ID')->sortable()->toggleable(),
+                TextColumn::make('name')->label('企业名称')->searchable()->sortable(),
+                TextColumn::make('owner.display_name')->label('主账号')->toggleable(),
+                TextColumn::make('contact_phone')->label('联系电话')->toggleable(),
+                TextColumn::make('status')
+                    ->label('状态')
+                    ->badge()
+                    ->formatStateUsing(fn (?string $state) => match ($state) {
+                        'active' => '启用',
+                        'inactive' => '停用',
+                        default => $state,
+                    })
+                    ->sortable(),
+                TextColumn::make('created_at')->label('创建时间')->dateTime()->sortable(),
             ])
             ->filters([
                 Tables\Filters\SelectFilter::make('status')
                     ->options([
-                        'active' => 'Active',
-                        'inactive' => 'Inactive',
+                        'active' => '启用',
+                        'inactive' => '停用',
                     ]),
             ])
             ->actions([

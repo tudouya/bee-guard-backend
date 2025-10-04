@@ -3,6 +3,7 @@
 namespace App\Filament\Admin\Resources;
 
 use App\Models\Order;
+use App\Support\AdminNavigation;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
 use Filament\Tables;
@@ -15,8 +16,9 @@ class OrderResource extends Resource
     protected static ?string $model = Order::class;
 
     protected static \BackedEnum|string|null $navigationIcon = 'heroicon-o-rectangle-stack';
-    protected static ?string $navigationLabel = 'Orders';
-    protected static \UnitEnum|string|null $navigationGroup = 'Business';
+    protected static ?string $navigationLabel = '订单管理';
+    protected static \UnitEnum|string|null $navigationGroup = AdminNavigation::GROUP_PAYMENT;
+    protected static ?int $navigationSort = AdminNavigation::ORDER_ORDERS;
 
     public static function form(Schema $schema): Schema
     {
@@ -27,27 +29,46 @@ class OrderResource extends Resource
     {
         return $table
             ->columns([
-                TextColumn::make('id')->sortable(),
-                TextColumn::make('user.display_name')->label('User'),
-                TextColumn::make('amount')->sortable()->money('CNY', true),
-                TextColumn::make('status')->badge()->sortable(),
-                TextColumn::make('channel')->badge()->sortable(),
-                TextColumn::make('paid_at')->dateTime()->sortable(),
-                TextColumn::make('detectionCode.prefix')->label('Prefix')->toggleable(),
-                TextColumn::make('detectionCode.code')->label('Code')->toggleable(),
-                TextColumn::make('created_at')->dateTime()->sortable(),
+                TextColumn::make('id')->label('订单号')->sortable(),
+                TextColumn::make('user.display_name')->label('蜂农')->default('—'),
+                TextColumn::make('amount')->label('金额')->sortable()->money('CNY', true),
+                TextColumn::make('status')
+                    ->label('状态')
+                    ->badge()
+                    ->formatStateUsing(fn (?string $state) => match ($state) {
+                        'pending' => '待审核',
+                        'paid' => '已支付',
+                        'failed' => '支付失败',
+                        'refunded' => '已退款',
+                        default => $state,
+                    })
+                    ->sortable(),
+                TextColumn::make('channel')
+                    ->label('支付渠道')
+                    ->badge()
+                    ->formatStateUsing(fn (?string $state) => match ($state) {
+                        'manual' => '人工审核',
+                        'wxpay' => '微信支付',
+                        'alipay' => '支付宝',
+                        default => $state,
+                    })
+                    ->sortable(),
+                TextColumn::make('paid_at')->label('支付时间')->dateTime()->sortable(),
+                TextColumn::make('detectionCode.prefix')->label('检测号前缀')->toggleable(),
+                TextColumn::make('detectionCode.code')->label('检测号')->toggleable(),
+                TextColumn::make('created_at')->label('创建时间')->dateTime()->sortable(),
             ])
             ->filters([
-                SelectFilter::make('status')->options([
-                    'pending' => 'Pending',
-                    'paid' => 'Paid',
-                    'failed' => 'Failed',
-                    'refunded' => 'Refunded',
+                SelectFilter::make('status')->label('状态')->options([
+                    'pending' => '待审核',
+                    'paid' => '已支付',
+                    'failed' => '支付失败',
+                    'refunded' => '已退款',
                 ]),
-                SelectFilter::make('channel')->options([
-                    'manual' => 'Manual',
-                    'wxpay' => 'WeChat Pay',
-                    'alipay' => 'Alipay',
+                SelectFilter::make('channel')->label('支付渠道')->options([
+                    'manual' => '人工审核',
+                    'wxpay' => '微信支付',
+                    'alipay' => '支付宝',
                 ]),
             ])
             ->actions([])
@@ -61,4 +82,3 @@ class OrderResource extends Resource
         ];
     }
 }
-

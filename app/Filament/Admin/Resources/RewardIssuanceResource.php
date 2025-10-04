@@ -6,6 +6,7 @@ use App\Enums\RewardIssuanceStatus;
 use App\Filament\Admin\Resources\RewardIssuanceResource\Pages;
 use App\Models\RewardIssuance;
 use App\Services\Community\Rewards\RewardIssuer;
+use App\Support\AdminNavigation;
 use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Components\Textarea;
 use Filament\Schemas\Components\Grid;
@@ -38,7 +39,12 @@ class RewardIssuanceResource extends Resource
 
     public static function getNavigationGroup(): ?string
     {
-        return '奖励配置';
+        return AdminNavigation::GROUP_REWARDS;
+    }
+
+    public static function getNavigationSort(): ?int
+    {
+        return AdminNavigation::ORDER_REWARD_ISSUANCES;
     }
 
     public static function form(Schema $schema): Schema

@@ -8,6 +8,7 @@ use App\Filament\Admin\Resources\CommunityPosts\Schemas\CommunityPostForm;
 use App\Filament\Admin\Resources\CommunityPosts\Schemas\CommunityPostInfolist;
 use App\Filament\Admin\Resources\CommunityPosts\Tables\CommunityPostsTable;
 use App\Models\CommunityPost;
+use App\Support\AdminNavigation;
 use BackedEnum;
 use UnitEnum;
 use Filament\Resources\Resource;
@@ -22,8 +23,9 @@ class CommunityPostResource extends Resource
     protected static ?string $model = CommunityPost::class;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedRectangleStack;
-    protected static UnitEnum|string|null $navigationGroup = '社区管理';
+    protected static UnitEnum|string|null $navigationGroup = AdminNavigation::GROUP_COMMUNITY;
     protected static ?string $navigationLabel = '社区帖子';
+    protected static ?int $navigationSort = AdminNavigation::ORDER_COMMUNITY_POSTS;
     protected static ?int $pendingCountCache = null;
 
     protected static ?string $recordTitleAttribute = 'title';

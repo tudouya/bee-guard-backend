@@ -5,6 +5,7 @@ namespace App\Filament\Admin\Resources;
 use App\Models\PaymentProof;
 use App\Models\DetectionCode;
 use App\Models\Order;
+use App\Support\AdminNavigation;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
 use Filament\Tables;
@@ -20,8 +21,9 @@ class PaymentProofResource extends Resource
     protected static ?string $model = PaymentProof::class;
 
     protected static \BackedEnum|string|null $navigationIcon = 'heroicon-o-document-text';
-    protected static ?string $navigationLabel = 'Payment Proofs';
-    protected static \UnitEnum|string|null $navigationGroup = 'Business';
+    protected static ?string $navigationLabel = '支付凭证审核';
+    protected static \UnitEnum|string|null $navigationGroup = AdminNavigation::GROUP_PAYMENT;
+    protected static ?int $navigationSort = AdminNavigation::ORDER_PAYMENT_PROOFS;
 
     public static function form(Schema $schema): Schema
     {
@@ -32,31 +34,42 @@ class PaymentProofResource extends Resource
     {
         return $table
             ->columns([
-                TextColumn::make('id')->sortable(),
-                TextColumn::make('order_id')->label('Order')->sortable(),
-                TextColumn::make('order.user.display_name')->label('User'),
-                TextColumn::make('amount')->money('CNY', true)->sortable(),
-                TextColumn::make('method')->badge(),
-                TextColumn::make('trade_no')->label('Pay Trade No')->toggleable(),
-                TextColumn::make('status')->badge()->sortable(),
-                TextColumn::make('created_at')->dateTime()->sortable(),
+                TextColumn::make('id')->label('编号')->sortable(),
+                TextColumn::make('order_id')->label('订单号')->sortable(),
+                TextColumn::make('order.user.display_name')->label('蜂农'),
+                TextColumn::make('amount')->label('金额')->money('CNY', true)->sortable(),
+                TextColumn::make('method')
+                    ->label('提交方式')
+                    ->badge(),
+                TextColumn::make('trade_no')->label('凭证号')->toggleable(),
+                TextColumn::make('status')
+                    ->label('状态')
+                    ->badge()
+                    ->formatStateUsing(fn (?string $state) => match ($state) {
+                        'pending' => '待审核',
+                        'approved' => '已通过',
+                        'rejected' => '已驳回',
+                        default => $state,
+                    })
+                    ->sortable(),
+                TextColumn::make('created_at')->label('提交时间')->dateTime()->sortable(),
             ])
             ->filters([
-                SelectFilter::make('status')->options([
-                    'pending' => 'Pending',
-                    'approved' => 'Approved',
-                    'rejected' => 'Rejected',
+                SelectFilter::make('status')->label('状态')->options([
+                    'pending' => '待审核',
+                    'approved' => '已通过',
+                    'rejected' => '已驳回',
                 ]),
             ])
             ->actions([
                 \Filament\Actions\Action::make('viewImages')
-                    ->label('Images')
-                    ->modalHeading('Payment Images')
+                    ->label('查看凭证')
+                    ->modalHeading('支付凭证')
                     ->modalContent(fn (PaymentProof $record) => view('filament.payment-proof-images', ['images' => (array) ($record->images ?? [])]))
                     ->visible(fn (PaymentProof $record) => is_array($record->images) && count($record->images) > 0),
 
                 \Filament\Actions\Action::make('approve')
-                    ->label('Approve')
+                    ->label('通过审核')
                     ->color('success')
                     ->requiresConfirmation()
                     ->visible(fn (PaymentProof $record) => $record->status === 'pending')
@@ -89,12 +102,12 @@ class PaymentProofResource extends Resource
                                 ->orderBy('id')
                                 ->first();
                             if (!$code) {
-                                Notification::make()
-                                    ->title('审核失败')
-                                    ->body('无可用自费检测码，请先生成 Self Paid 类型检测码')
-                                    ->danger()
-                                    ->persistent()
-                                    ->send();
+                            Notification::make()
+                                ->title('审核失败')
+                                ->body('无可用自费检测码，请先生成自费检测码')
+                                ->danger()
+                                ->persistent()
+                                ->send();
 
                                 return; // 直接返回，不继续执行
                             }
@@ -129,7 +142,7 @@ class PaymentProofResource extends Resource
                     }),
 
                 \Filament\Actions\Action::make('reject')
-                    ->label('Reject')
+                    ->label('驳回')
                     ->color('danger')
                     ->requiresConfirmation()
                     ->visible(fn (PaymentProof $record) => $record->status === 'pending')

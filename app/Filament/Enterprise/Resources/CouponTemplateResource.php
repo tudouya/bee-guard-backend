@@ -7,6 +7,7 @@ use App\Filament\Enterprise\Resources\CouponTemplateResource\Pages;
 use App\Filament\Forms\CouponTemplateForm;
 use App\Models\CouponTemplate;
 use App\Models\Enterprise;
+use App\Support\EnterpriseNavigation;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\EditAction;
 use Filament\Actions\ViewAction;
@@ -36,7 +37,12 @@ class CouponTemplateResource extends Resource
 
     public static function getNavigationGroup(): ?string
     {
-        return '奖励配置';
+        return EnterpriseNavigation::GROUP_MARKETING;
+    }
+
+    public static function getNavigationSort(): ?int
+    {
+        return EnterpriseNavigation::ORDER_COUPON_TEMPLATES;
     }
 
     public static function form(Schema $schema): Schema

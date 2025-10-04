@@ -3,6 +3,7 @@
 namespace App\Filament\Admin\Resources;
 
 use App\Models\Survey;
+use App\Support\AdminNavigation;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
 use Filament\Schemas\Components\Section;
@@ -19,8 +20,9 @@ class SurveyResource extends Resource
     protected static ?string $model = Survey::class;
 
     protected static \BackedEnum|string|null $navigationIcon = 'heroicon-o-clipboard-document-check';
-    protected static ?string $navigationLabel = 'Surveys';
-    protected static \UnitEnum|string|null $navigationGroup = 'Business';
+    protected static ?string $navigationLabel = '问卷资料';
+    protected static \UnitEnum|string|null $navigationGroup = AdminNavigation::GROUP_DETECTION_OPERATIONS;
+    protected static ?int $navigationSort = AdminNavigation::ORDER_SURVEYS;
 
     public static function form(Schema $schema): Schema
     {
@@ -35,32 +37,42 @@ class SurveyResource extends Resource
             ->recordUrl(fn ($record) => static::getUrl('view', ['record' => $record]))
             ->defaultSort('submitted_at', 'desc')
             ->columns([
-                TextColumn::make('id')->sortable()->toggleable(),
-                TextColumn::make('submitted_at')->dateTime()->label('Submitted At')->sortable(),
-                BadgeColumn::make('status')->colors([
-                    'gray' => 'draft',
-                    'success' => 'submitted',
-                ])->sortable(),
+                TextColumn::make('id')->label('ID')->sortable()->toggleable(),
+                TextColumn::make('submitted_at')->label('提交时间')->dateTime()->sortable(),
+                BadgeColumn::make('status')
+                    ->label('状态')
+                    ->colors([
+                        'gray' => '草稿',
+                        'success' => '已提交',
+                    ])
+                    ->formatStateUsing(fn (?string $state) => match ($state) {
+                        'draft' => '草稿',
+                        'submitted' => '已提交',
+                        default => $state,
+                    })
+                    ->sortable(),
 
-                TextColumn::make('owner_name')->label('Owner')->searchable(),
-                TextColumn::make('phone')->label('Phone')->searchable(),
-                TextColumn::make('bee_count')->label('Bee Count')->sortable()->toggleable(),
-                BadgeColumn::make('raise_method')->label('Raise')->colors([
+                TextColumn::make('owner_name')->label('蜂农')->searchable(),
+                TextColumn::make('phone')->label('联系电话')->searchable(),
+                TextColumn::make('bee_count')->label('蜂群数量')->sortable()->toggleable(),
+                BadgeColumn::make('raise_method')->label('养殖方式')->colors([
                     'info' => '定地',
                     'warning' => '省内小转地',
                     'danger' => '跨省大转地',
                 ])->toggleable(),
-                TextColumn::make('bee_species')->label('Species')->toggleable(),
+                TextColumn::make('bee_species')->label('蜂种')->toggleable(),
 
-                BadgeColumn::make('is_production_now')->label('Production')
-                    ->colors(['success' => '是', 'gray' => '否'])->toggleable(),
-                TextColumn::make('product_type')->label('Product')->toggleable(),
-                TextColumn::make('next_month')->label('Next Month')->toggleable(),
-                BadgeColumn::make('has_abnormal')->label('Abnormal')
-                    ->colors(['danger' => '是', 'gray' => '否'])->toggleable(),
+                BadgeColumn::make('is_production_now')->label('当前采蜜期')
+                    ->colors(['success' => '是', 'gray' => '否'])
+                    ->toggleable(),
+                TextColumn::make('product_type')->label('主要产品')->toggleable(),
+                TextColumn::make('next_month')->label('下月计划')->toggleable(),
+                BadgeColumn::make('has_abnormal')->label('异常情况')
+                    ->colors(['danger' => '是', 'gray' => '否'])
+                    ->toggleable(),
 
                 TextColumn::make('detectionCodeFull')
-                    ->label('Detection Code')
+                    ->label('关联检测号')
                     ->getStateUsing(fn ($record) => optional($record->detectionCode)->prefix . optional($record->detectionCode)->code)
                     ->searchable(query: function ($query, $search) {
                         $query->whereHas('detectionCode', function ($q) use ($search) {
@@ -68,24 +80,29 @@ class SurveyResource extends Resource
                         });
                     })
                     ->toggleable(),
-                BadgeColumn::make('detectionCode.source_type')->label('Source')
+                BadgeColumn::make('detectionCode.source_type')->label('来源类型')
                     ->colors(['primary' => 'self_paid', 'warning' => 'gift'])
+                    ->formatStateUsing(fn (?string $state) => match ($state) {
+                        'self_paid' => '自费',
+                        'gift' => '企业赠送',
+                        default => $state,
+                    })
                     ->sortable()
                     ->toggleable(),
-                TextColumn::make('detectionCode.enterprise.name')->label('Enterprise')->toggleable(),
+                TextColumn::make('detectionCode.enterprise.name')->label('所属企业')->toggleable(),
             ])
             ->filters([
-                SelectFilter::make('is_production_now')->options(['是' => '是', '否' => '否'])->label('Production'),
-                SelectFilter::make('has_abnormal')->options(['是' => '是', '否' => '否'])->label('Abnormal'),
-                SelectFilter::make('source_type')->label('Source')->options([
-                    'self_paid' => 'Self Paid',
-                    'gift' => 'Gift',
+                SelectFilter::make('is_production_now')->options(['是' => '是', '否' => '否'])->label('当前采蜜期'),
+                SelectFilter::make('has_abnormal')->options(['是' => '是', '否' => '否'])->label('异常情况'),
+                SelectFilter::make('source_type')->label('来源类型')->options([
+                    'self_paid' => '自费',
+                    'gift' => '企业赠送',
                 ])->query(function ($query, $data) {
                     if (!empty($data['value'])) {
                         $query->whereHas('detectionCode', fn ($q) => $q->where('source_type', $data['value']));
                     }
                 }),
-                SelectFilter::make('enterprise_id')->label('Enterprise')
+                SelectFilter::make('enterprise_id')->label('所属企业')
                     ->relationship('detectionCode.enterprise', 'name'),
             ])
             // 行为：行已可点击进入详情，省略额外“查看”按钮以避免类兼容问题

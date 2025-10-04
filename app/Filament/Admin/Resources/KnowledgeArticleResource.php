@@ -5,6 +5,7 @@ namespace App\Filament\Admin\Resources;
 use App\Filament\Admin\Resources\KnowledgeArticleResource\Pages;
 use App\Models\KnowledgeArticle;
 use App\Models\Disease;
+use App\Support\AdminNavigation;
 use Filament\Forms\Components\RichEditor;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
@@ -24,9 +25,11 @@ class KnowledgeArticleResource extends Resource
 
     protected static \BackedEnum|string|null $navigationIcon = 'heroicon-o-document-text';
 
-    protected static ?string $navigationLabel = 'Knowledge Articles';
+    protected static ?string $navigationLabel = '知识文章';
 
-    protected static \UnitEnum|string|null $navigationGroup = 'Dictionary';
+    protected static \UnitEnum|string|null $navigationGroup = AdminNavigation::GROUP_KNOWLEDGE;
+
+    protected static ?int $navigationSort = AdminNavigation::ORDER_KNOWLEDGE_ARTICLES;
 
     public static function form(Schema $schema): Schema
     {
@@ -34,29 +37,29 @@ class KnowledgeArticleResource extends Resource
             ->columns(1)
             ->schema([
                 Grid::make(['default' => 1, 'xl' => 12])->schema([
-                    Section::make('Basic')
+                    Section::make('基本信息')
                         ->schema([
                         Select::make('disease_id')
-                            ->label('Disease')
+                            ->label('关联病种')
                             ->options(fn () => Disease::query()->where('status', 'active')->orderBy('sort')->pluck('name', 'id')->all())
                             ->searchable()
                             ->preload()
                             ->required(),
                         TextInput::make('title')
-                            ->label('Title')
+                            ->label('文章标题')
                             ->required()
                             ->maxLength(191),
                         TextInput::make('brief')
-                            ->label('Brief')
+                            ->label('摘要')
                             ->maxLength(300),
                     ])
                     ->columns(1)
                     ->columnSpan(['default' => 1, 'xl' => 4]),
 
-                Section::make('Content')
+                Section::make('正文内容')
                     ->schema([
                         RichEditor::make('body_html')
-                            ->label('Body')
+                            ->label('正文')
                             ->required()
                             ->columnSpanFull()
                             ->extraAttributes(['style' => 'min-height: 400px;'])
@@ -77,22 +80,23 @@ class KnowledgeArticleResource extends Resource
         return $table
             ->query(fn () => KnowledgeArticle::query()->with('disease'))
             ->columns([
-                TextColumn::make('id')->sortable()->toggleable(),
-                TextColumn::make('title')->searchable()->sortable()->wrap(),
-                TextColumn::make('disease.name')->label('Disease')->sortable()->searchable(),
-                TextColumn::make('published_at')->dateTime('Y-m-d')->label('Published')->sortable(),
-                TextColumn::make('views')->sortable(),
-                TextColumn::make('updated_at')->dateTime()->label('Updated')->sortable(),
+                TextColumn::make('id')->label('ID')->sortable()->toggleable(),
+                TextColumn::make('title')->label('文章标题')->searchable()->sortable()->wrap(),
+                TextColumn::make('disease.name')->label('关联病种')->sortable()->searchable(),
+                TextColumn::make('published_at')->dateTime('Y-m-d')->label('发布时间')->sortable(),
+                TextColumn::make('views')->label('浏览量')->sortable(),
+                TextColumn::make('updated_at')->dateTime()->label('更新时间')->sortable(),
             ])
             ->filters([
-                Tables\Filters\SelectFilter::make('disease_id')->label('Disease')
+                Tables\Filters\SelectFilter::make('disease_id')->label('关联病种')
                     ->options(fn () => Disease::query()->orderBy('sort')->pluck('name', 'id')->all()),
                 Tables\Filters\Filter::make('published')
+                    ->label('仅看已发布')
                     ->query(fn (Builder $q) => $q->whereNotNull('published_at')),
             ])
             ->actions([
                 \Filament\Actions\Action::make('publish')
-                    ->label('Publish')
+                    ->label('发布')
                     ->visible(fn (KnowledgeArticle $record) => $record->published_at === null)
                     ->requiresConfirmation()
                     ->action(function (KnowledgeArticle $record) {
@@ -100,7 +104,7 @@ class KnowledgeArticleResource extends Resource
                         $record->save();
                     }),
                 \Filament\Actions\Action::make('unpublish')
-                    ->label('Unpublish')
+                    ->label('取消发布')
                     ->visible(fn (KnowledgeArticle $record) => $record->published_at !== null)
                     ->requiresConfirmation()
                     ->action(function (KnowledgeArticle $record) {

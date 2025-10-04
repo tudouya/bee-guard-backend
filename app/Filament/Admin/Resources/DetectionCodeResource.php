@@ -4,6 +4,7 @@ namespace App\Filament\Admin\Resources;
 
 use App\Filament\Admin\Resources\DetectionCodeResource\Pages;
 use App\Models\DetectionCode;
+use App\Support\AdminNavigation;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Radio;
 use Filament\Forms\Components\Select;
@@ -24,21 +25,23 @@ class DetectionCodeResource extends Resource
 
     protected static \BackedEnum|string|null $navigationIcon = 'heroicon-o-qr-code';
 
-    protected static ?string $navigationLabel = 'Detection Codes';
+    protected static ?string $navigationLabel = '检测号池';
 
-    protected static \UnitEnum|string|null $navigationGroup = 'Business';
+    protected static \UnitEnum|string|null $navigationGroup = AdminNavigation::GROUP_DETECTION_OPERATIONS;
+
+    protected static ?int $navigationSort = AdminNavigation::ORDER_DETECTION_CODES;
 
     public static function form(Schema $schema): Schema
     {
         return $schema->schema([
-            Section::make('Basic Info')->schema([
+            Section::make('基础信息')->schema([
                 // 先选择来源：左侧 Source Type（半行），右侧 Enterprise（半行，按需显示）
                 Grid::make(2)->schema([
                     Select::make('source_type')
-                        ->label('Source Type')
+                        ->label('来源类型')
                         ->options([
-                            'gift' => 'Gift (Enterprise)',
-                            'self_paid' => 'Self Paid',
+                            'gift' => '赠送（企业）',
+                            'self_paid' => '自费',
                         ])
                         ->required()
                         ->native(false)
@@ -60,7 +63,7 @@ class DetectionCodeResource extends Resource
                         })
                         ->columnSpan(1),
                     Select::make('enterprise_id')
-                        ->label('Enterprise')
+                        ->label('所属企业')
                         ->relationship('enterprise', 'name')
                         ->searchable()
                         ->preload()
@@ -88,13 +91,13 @@ class DetectionCodeResource extends Resource
                 // 再展示生成的完整码组件：左 code、右 prefix
                 Grid::make(['default' => 1, 'md' => 2])->schema([
                     TextInput::make('code')
-                        ->label('Code')
+                        ->label('检测号')
                         ->helperText('自动生成的 10 位大写编码（非纯数字）')
                         ->readOnly()
                         ->required()
                         ->maxLength(10),
                     TextInput::make('prefix')
-                        ->label('Prefix')
+                        ->label('前缀')
                         ->helperText('根据来源自动设置，避免人工误填')
                         ->readOnly()
                         ->required()
@@ -104,12 +107,12 @@ class DetectionCodeResource extends Resource
                 // 行3：左侧 Status（半行），右侧留空
                 Grid::make(2)->schema([
                     Select::make('status')
-                        ->label('Status')
+                        ->label('状态')
                         ->options([
-                            'available' => 'Available',
-                            'assigned' => 'Assigned',
-                            'used' => 'Used',
-                            'expired' => 'Expired',
+                            'available' => '可用',
+                            'assigned' => '已分配',
+                            'used' => '已使用',
+                            'expired' => '已过期',
                         ])
                         ->default('available')
                         ->required()
@@ -118,12 +121,12 @@ class DetectionCodeResource extends Resource
                 ]),
             ]),
 
-            Section::make('Assignment (Optional)')->schema([
+            Section::make('分配信息')->schema([
                 // Row 1: Assigned User alone for better readability
                 Grid::make(['default' => 1])->schema([
                     Select::make('assigned_user_id')
-                        ->label('Assigned User')
-                        ->helperText('按手机号/昵称/用户名/邮箱搜索，至少输入2个字符')
+                        ->label('分配用户')
+                        ->helperText('按手机号/昵称/用户名/邮箱搜索，至少输入 2 个字符')
                         // 保持关系绑定用于保存；但搜索改为远程检索，禁用预加载
                         ->relationship('assignedUser', 'name')
                         ->searchable()
@@ -145,7 +148,7 @@ class DetectionCodeResource extends Resource
                                 ->get();
                             $out = [];
                             foreach ($query as $u) {
-                                $label = (string) ($u->nickname ?: ($u->name ?: ($u->username ?: ($u->email ?: ('#'.$u->id)))));
+                                $label = (string) ($u->nickname ?: ($u->name ?: ($u->username ?: ($u->email ?: ('用户 #'.$u->id)))));
                                 if (filled($u->phone)) {
                                     $label .= ' · '.$u->phone;
                                 }
@@ -154,18 +157,22 @@ class DetectionCodeResource extends Resource
                             return $out;
                         })
                         ->getOptionLabelUsing(function ($value): ?string {
-                            if (empty($value)) return null;
+                            if (empty($value)) {
+                                return null;
+                            }
                             $u = \App\Models\User::query()->select(['id','phone','nickname','name','username','email'])->find($value);
-                            if (!$u) return '#'.$value;
-                            $label = (string) ($u->nickname ?: ($u->name ?: ($u->username ?: ($u->email ?: ('#'.$u->id)))));
+                            if (! $u) {
+                                return '用户 #'.$value;
+                            }
+                            $label = (string) ($u->nickname ?: ($u->name ?: ($u->username ?: ($u->email ?: ('用户 #'.$u->id)))));
                             return filled($u->phone) ? ($label.' · '.$u->phone) : $label;
                         })
                         ->nullable(),
                 ]),
                 // Row 2: Timestamps in two columns
                 Grid::make(['default' => 1, 'md' => 2])->schema([
-                    DatePicker::make('assigned_at')->label('Assigned At')->native(false),
-                    DatePicker::make('used_at')->label('Used At')->native(false),
+                    DatePicker::make('assigned_at')->label('分配时间')->native(false),
+                    DatePicker::make('used_at')->label('使用时间')->native(false),
                 ]),
             ]),
         ]);
@@ -175,29 +182,72 @@ class DetectionCodeResource extends Resource
     {
         return $table
             ->columns([
-                TextColumn::make('id')->sortable()->toggleable(),
-                TextColumn::make('code')->searchable()->sortable(),
-                TextColumn::make('source_type')->badge()->sortable(),
-                TextColumn::make('prefix')->sortable()->toggleable(),
-                TextColumn::make('status')->badge()->sortable(),
-                TextColumn::make('enterprise.name')->label('Enterprise')->toggleable(),
-                TextColumn::make('assignedUser.display_name')->label('Assigned User')->toggleable(),
-                TextColumn::make('assigned_at')->date()->sortable(),
-                TextColumn::make('used_at')->date()->sortable(),
-                TextColumn::make('created_at')->date()->sortable(),
+                TextColumn::make('id')->label('ID')->sortable()->toggleable(),
+                TextColumn::make('code')
+                    ->label('检测号')
+                    ->searchable()
+                    ->sortable(),
+                TextColumn::make('source_type')
+                    ->label('来源类型')
+                    ->badge()
+                    ->sortable()
+                    ->formatStateUsing(fn (?string $state) => match ($state) {
+                        'gift' => '企业赠送',
+                        'self_paid' => '自费',
+                        default => $state,
+                    }),
+                TextColumn::make('prefix')
+                    ->label('前缀')
+                    ->sortable()
+                    ->toggleable(),
+                TextColumn::make('status')
+                    ->label('状态')
+                    ->badge()
+                    ->sortable()
+                    ->formatStateUsing(fn (?string $state) => match ($state) {
+                        'available' => '可用',
+                        'assigned' => '已分配',
+                        'used' => '已使用',
+                        'expired' => '已过期',
+                        default => $state,
+                    }),
+                TextColumn::make('enterprise.name')
+                    ->label('所属企业')
+                    ->toggleable(),
+                TextColumn::make('assignedUser.display_name')
+                    ->label('分配用户')
+                    ->toggleable(),
+                TextColumn::make('assigned_at')
+                    ->label('分配时间')
+                    ->date()
+                    ->sortable(),
+                TextColumn::make('used_at')
+                    ->label('使用时间')
+                    ->date()
+                    ->sortable(),
+                TextColumn::make('created_at')
+                    ->label('创建时间')
+                    ->date()
+                    ->sortable(),
             ])
             ->filters([
-                SelectFilter::make('source_type')->options([
-                    'gift' => 'Gift (Enterprise)',
-                    'self_paid' => 'Self Paid',
-                ]),
-                SelectFilter::make('status')->options([
-                    'available' => 'Available',
-                    'assigned' => 'Assigned',
-                    'used' => 'Used',
-                    'expired' => 'Expired',
-                ]),
-                SelectFilter::make('enterprise_id')->label('Enterprise')->relationship('enterprise', 'name'),
+                SelectFilter::make('source_type')
+                    ->label('来源类型')
+                    ->options([
+                        'gift' => '企业赠送',
+                        'self_paid' => '自费',
+                    ]),
+                SelectFilter::make('status')
+                    ->label('状态')
+                    ->options([
+                        'available' => '可用',
+                        'assigned' => '已分配',
+                        'used' => '已使用',
+                        'expired' => '已过期',
+                    ]),
+                SelectFilter::make('enterprise_id')
+                    ->label('所属企业')
+                    ->relationship('enterprise', 'name'),
             ])
             ->actions([
                 \Filament\Actions\EditAction::make(),
@@ -205,12 +255,12 @@ class DetectionCodeResource extends Resource
             ])
             ->bulkActions([
                 \Filament\Actions\BulkAction::make('markExpired')
-                    ->label('Mark as Expired')
+                    ->label('批量标记为已过期')
                     ->color('warning')
                     ->requiresConfirmation()
                     ->action(fn (array $records) => collect($records)->each->update(['status' => 'expired'])),
                 \Filament\Actions\BulkAction::make('markAvailable')
-                    ->label('Mark as Available')
+                    ->label('批量标记为可用')
                     ->color('gray')
                     ->requiresConfirmation()
                     ->action(fn (array $records) => collect($records)->each->update(['status' => 'available'])),

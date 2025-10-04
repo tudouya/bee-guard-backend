@@ -8,6 +8,7 @@ use App\Enums\RewardMetric;
 use App\Filament\Admin\Resources\RewardRuleResource\Pages;
 use App\Models\CouponTemplate;
 use App\Models\RewardRule;
+use App\Support\AdminNavigation;
 use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
@@ -42,7 +43,12 @@ class RewardRuleResource extends Resource
 
     public static function getNavigationGroup(): ?string
     {
-        return '奖励配置';
+        return AdminNavigation::GROUP_REWARDS;
+    }
+
+    public static function getNavigationSort(): ?int
+    {
+        return AdminNavigation::ORDER_REWARD_RULES;
     }
 
     public static function form(Schema $schema): Schema

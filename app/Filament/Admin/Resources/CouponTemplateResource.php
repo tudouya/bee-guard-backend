@@ -5,6 +5,7 @@ namespace App\Filament\Admin\Resources;
 use App\Enums\CouponTemplateStatus;
 use App\Filament\Admin\Resources\CouponTemplateResource\Pages;
 use App\Models\CouponTemplate;
+use App\Support\AdminNavigation;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Components\Select;
@@ -39,7 +40,12 @@ class CouponTemplateResource extends Resource
 
     public static function getNavigationGroup(): ?string
     {
-        return '奖励配置';
+        return AdminNavigation::GROUP_REWARDS;
+    }
+
+    public static function getNavigationSort(): ?int
+    {
+        return AdminNavigation::ORDER_COUPON_TEMPLATES;
     }
 
     public static function form(Schema $schema): Schema

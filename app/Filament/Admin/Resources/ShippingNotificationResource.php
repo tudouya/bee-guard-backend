@@ -3,6 +3,7 @@
 namespace App\Filament\Admin\Resources;
 
 use App\Models\ShippingNotification;
+use App\Support\AdminNavigation;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
 use Filament\Schemas\Components\Section;
@@ -21,8 +22,9 @@ class ShippingNotificationResource extends Resource
     protected static ?string $model = ShippingNotification::class;
 
     protected static \BackedEnum|string|null $navigationIcon = 'heroicon-o-truck';
-    protected static ?string $navigationLabel = 'Shipping';
-    protected static \UnitEnum|string|null $navigationGroup = 'Business';
+    protected static ?string $navigationLabel = '邮寄通知';
+    protected static \UnitEnum|string|null $navigationGroup = AdminNavigation::GROUP_DETECTION_OPERATIONS;
+    protected static ?int $navigationSort = AdminNavigation::ORDER_SHIPPING;
 
     public static function form(Schema $schema): Schema
     {
@@ -36,16 +38,16 @@ class ShippingNotificationResource extends Resource
             ->recordUrl(fn ($record) => static::getUrl('view', ['record' => $record]))
             ->defaultSort('created_at', 'desc')
             ->columns([
-                TextColumn::make('id')->sortable()->toggleable(),
-                TextColumn::make('created_at')->label('Created At')->dateTime()->sortable(),
-                TextColumn::make('shipped_at')->label('Shipped At')->date()->sortable(),
+                TextColumn::make('id')->label('ID')->sortable()->toggleable(),
+                TextColumn::make('created_at')->label('提交时间')->dateTime()->sortable(),
+                TextColumn::make('shipped_at')->label('寄出日期')->date()->sortable(),
 
-                TextColumn::make('courier_company')->label('Courier')->sortable()->searchable(),
-                TextColumn::make('tracking_no')->label('Tracking No.')->sortable()->searchable(),
-                TextColumn::make('contact_phone')->label('Contact Phone')->searchable()->toggleable(),
+                TextColumn::make('courier_company')->label('快递公司')->sortable()->searchable(),
+                TextColumn::make('tracking_no')->label('快递单号')->sortable()->searchable(),
+                TextColumn::make('contact_phone')->label('联系电话')->searchable()->toggleable(),
 
                 TextColumn::make('detectionCodeFull')
-                    ->label('Detection Code')
+                    ->label('检测号')
                     ->getStateUsing(fn ($record) => optional($record->detectionCode)->prefix . optional($record->detectionCode)->code)
                     ->searchable(query: function ($query, $search) {
                         $query->whereHas('detectionCode', function ($q) use ($search) {
@@ -53,27 +55,32 @@ class ShippingNotificationResource extends Resource
                         });
                     })
                     ->toggleable(),
-                BadgeColumn::make('detectionCode.source_type')->label('Source')
+                BadgeColumn::make('detectionCode.source_type')->label('来源')
                     ->colors(['primary' => 'self_paid', 'warning' => 'gift'])
+                    ->formatStateUsing(fn (?string $state) => match ($state) {
+                        'self_paid' => '自费',
+                        'gift' => '企业赠送',
+                        default => $state,
+                    })
                     ->sortable()
                     ->toggleable(),
-                TextColumn::make('detectionCode.enterprise.name')->label('Enterprise')->toggleable(),
+                TextColumn::make('detectionCode.enterprise.name')->label('所属企业')->toggleable(),
 
-                TextColumn::make('user.display_name')->label('User')->toggleable(),
+                TextColumn::make('user.display_name')->label('提交用户')->toggleable(),
             ])
             ->filters([
-                SelectFilter::make('courier_company')->label('Courier')
+                SelectFilter::make('courier_company')->label('快递公司')
                     ->options(collect(config('shipping.courier_companies', []))
                         ->mapWithKeys(fn ($v) => [$v => $v])->all()),
-                SelectFilter::make('source_type')->label('Source')->options([
-                    'self_paid' => 'Self Paid',
-                    'gift' => 'Gift',
+                SelectFilter::make('source_type')->label('来源')->options([
+                    'self_paid' => '自费',
+                    'gift' => '企业赠送',
                 ])->query(function ($query, $data) {
                     if (!empty($data['value'])) {
                         $query->whereHas('detectionCode', fn ($q) => $q->where('source_type', $data['value']));
                     }
                 }),
-                SelectFilter::make('enterprise_id')->label('Enterprise')
+                SelectFilter::make('enterprise_id')->label('所属企业')
                     ->relationship('detectionCode.enterprise', 'name'),
             ])
             ->actions([])
@@ -114,7 +121,13 @@ class ShippingNotificationResource extends Resource
                     Text::make(fn (ShippingNotification $record) => optional($record->detectionCode)?->prefix . optional($record->detectionCode)?->code ?: '—')->columnSpan(1),
 
                     Text::make('来源')->color('gray')->weight('medium')->columnSpan(1),
-                    Text::make(fn (ShippingNotification $record) => optional($record->detectionCode)?->source_type ?: '—')
+                    Text::make(function (ShippingNotification $record) {
+                        return match ($record->detectionCode?->source_type) {
+                            'self_paid' => '自费',
+                            'gift' => '企业赠送',
+                            default => '—',
+                        };
+                    })
                         ->badge()
                         ->color(fn (ShippingNotification $record) => $record->detectionCode?->source_type === 'self_paid' ? 'primary' : 'warning')
                         ->columnSpan(1),
