@@ -4,14 +4,13 @@ namespace App\Filament\Enterprise\Resources;
 
 use App\Enums\CouponTemplateStatus;
 use App\Filament\Enterprise\Resources\CouponTemplateResource\Pages;
+use App\Filament\Forms\CouponTemplateForm;
 use App\Models\CouponTemplate;
 use App\Models\Enterprise;
-use Filament\Forms\Components\DatePicker;
-use Filament\Forms\Components\Select;
-use Filament\Forms\Components\Textarea;
-use Filament\Forms\Components\TextInput;
+use Filament\Actions\DeleteAction;
+use Filament\Actions\EditAction;
+use Filament\Actions\ViewAction;
 use Filament\Resources\Resource;
-use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
 use Filament\Tables;
 use Filament\Tables\Columns\TextColumn;
@@ -20,9 +19,6 @@ use Filament\Tables\Table;
 use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
-use Filament\Actions\DeleteAction;
-use Filament\Actions\EditAction;
-use Filament\Actions\ViewAction;
 
 class CouponTemplateResource extends Resource
 {
@@ -45,67 +41,20 @@ class CouponTemplateResource extends Resource
 
     public static function form(Schema $schema): Schema
     {
-        return $schema->schema([
-            Section::make('券基础信息')
-                ->description('提交后将进入平台审核，审核通过后方可用于奖励规则。')
-                ->schema([
-                    Select::make('enterprise_id')
-                        ->label('所属企业')
-                        ->options(fn () => self::getEnterpriseOptions())
-                        ->required()
-                        ->native(false)
-                        ->default(fn () => array_key_first(self::getEnterpriseOptions()))
-                        ->disabled(fn (?CouponTemplate $record) => filled($record))
-                        ->helperText('若列表为空，请联系平台管理员为账号指派企业。'),
-                    TextInput::make('title')
-                        ->label('券名称')
-                        ->required()
-                        ->maxLength(191),
-                    Select::make('platform')
-                        ->label('发券平台')
-                        ->required()
-                        ->options(self::platformOptions())
-                        ->native(false),
-                    TextInput::make('store_name')
-                        ->label('店铺名称')
-                        ->required()
-                        ->maxLength(191),
-                    TextInput::make('store_url')
-                        ->label('店铺链接')
-                        ->url()
-                        ->required()
-                        ->maxLength(255)
-                        ->helperText('请填写可访问的店铺或优惠券链接，便于蜂农快速跳转。'),
-                    TextInput::make('face_value')
-                        ->label('面值（元）')
-                        ->numeric()
-                        ->required()
-                        ->minValue(0)
-                        ->step(0.01),
-                    TextInput::make('total_quantity')
-                        ->label('发放总量（留空表示不限）')
-                        ->numeric()
-                        ->nullable()
-                        ->minValue(1),
-                    DatePicker::make('valid_from')
-                        ->label('有效期开始')
-                        ->required()
-                        ->native(false),
-                    DatePicker::make('valid_until')
-                        ->label('有效期结束')
-                        ->required()
-                        ->native(false)
-                        ->afterOrEqual('valid_from'),
-                    Textarea::make('usage_instructions')
-                        ->label('使用说明')
-                        ->rows(5)
-                        ->required()
-                        ->columnSpanFull(),
-                ])->columns([
-                    'default' => 1,
-                    'md' => 2,
-                ]),
-        ]);
+        return $schema->schema(
+            CouponTemplateForm::make([
+                'description' => '提交后将进入平台审核，审核通过后方可用于奖励规则。',
+                'platformOptions' => self::platformOptions(),
+                'enterpriseField' => [
+                    'options' => fn () => self::getEnterpriseOptions(),
+                    'default' => fn () => array_key_first(self::getEnterpriseOptions()),
+                    'disabled' => fn (?CouponTemplate $record) => filled($record),
+                    'helperText' => '若列表为空，请联系平台管理员为账号指派企业。',
+                    'native' => false,
+                    'searchable' => true,
+                ],
+            ])
+        );
     }
 
     public static function table(Table $table): Table

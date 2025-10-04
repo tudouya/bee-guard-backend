@@ -16,6 +16,7 @@ use Filament\Schemas\Schema;
 use Filament\Tables;
 use Filament\Actions\Action;
 use Filament\Actions\DeleteAction;
+use Filament\Actions\EditAction;
 use Filament\Actions\ViewAction;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
@@ -181,6 +182,10 @@ class CouponTemplateResource extends Resource
                     ->native(false),
             ])
             ->actions([
+                EditAction::make()
+                    ->label('编辑')
+                    ->icon('heroicon-o-pencil-square')
+                    ->visible(fn (CouponTemplate $record) => static::canEdit($record)),
                 ViewAction::make()
                     ->label('查看'),
                 Action::make('approve')
@@ -218,7 +223,8 @@ class CouponTemplateResource extends Resource
                         ]);
                     }),
                 DeleteAction::make()
-                    ->visible(fn (CouponTemplate $record) => $record->status !== CouponTemplateStatus::Approved),
+                    ->visible(fn (CouponTemplate $record) => (string) auth()->user()?->role === 'super_admin'
+                        && $record->status !== CouponTemplateStatus::Approved),
             ])
             ->bulkActions([])
             ->modifyQueryUsing(fn (Builder $query) => $query->latest('created_at'));
@@ -228,21 +234,24 @@ class CouponTemplateResource extends Resource
     {
         return [
             'index' => Pages\ListCouponTemplates::route('/'),
+            'create' => Pages\CreateCouponTemplate::route('/create'),
             'view' => Pages\ViewCouponTemplate::route('/{record}'),
+            'edit' => Pages\EditCouponTemplate::route('/{record}/edit'),
         ];
     }
 
     public static function canCreate(): bool
     {
-        return false;
+        return (string) auth()->user()?->role === 'super_admin';
     }
 
     public static function canEdit($record): bool
     {
-        return false;
+        return (string) auth()->user()?->role === 'super_admin'
+            && $record instanceof CouponTemplate;
     }
 
-    protected static function platformLabels(): array
+    public static function platformLabels(): array
     {
         return [
             'jd' => '京东',

@@ -3,6 +3,7 @@
 namespace App\Filament\Admin\Resources\CouponTemplateResource\Pages;
 
 use App\Filament\Admin\Resources\CouponTemplateResource;
+use Filament\Actions;
 use Filament\Resources\Pages\ViewRecord;
 
 class ViewCouponTemplate extends ViewRecord
@@ -11,6 +12,10 @@ class ViewCouponTemplate extends ViewRecord
 
     protected function getActions(): array
     {
-        return [];
+        return [
+            Actions\EditAction::make()
+                ->label('编辑')
+                ->visible(fn () => CouponTemplateResource::canEdit($this->getRecord())),
+        ];
     }
 }

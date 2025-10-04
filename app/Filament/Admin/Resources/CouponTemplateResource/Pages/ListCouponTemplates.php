@@ -3,6 +3,7 @@
 namespace App\Filament\Admin\Resources\CouponTemplateResource\Pages;
 
 use App\Filament\Admin\Resources\CouponTemplateResource;
+use Filament\Actions;
 use Filament\Resources\Pages\ListRecords;
 
 class ListCouponTemplates extends ListRecords
@@ -11,6 +12,11 @@ class ListCouponTemplates extends ListRecords
 
     protected function getHeaderActions(): array
     {
-        return [];
+        return [
+            Actions\CreateAction::make()
+                ->label('新建购物券模板')
+                ->icon('heroicon-o-plus')
+                ->visible(fn () => CouponTemplateResource::canCreate()),
+        ];
     }
 }
