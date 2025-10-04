@@ -3,15 +3,15 @@
 namespace App\Filament\Admin\Resources\CommunityPosts\Tables;
 
 use App\Models\CommunityPost;
-use Filament\Forms\Components\Placeholder;
-use Filament\Forms\Components\Textarea;
 use Filament\Actions\Action;
 use Filament\Actions\ActionGroup;
-use Filament\Actions\DeleteAction;
-use Filament\Actions\RestoreAction;
 use Filament\Actions\BulkActionGroup;
+use Filament\Actions\DeleteAction;
 use Filament\Actions\DeleteBulkAction;
+use Filament\Actions\RestoreAction;
 use Filament\Actions\RestoreBulkAction;
+use Filament\Actions\ViewAction;
+use Filament\Forms\Components\Textarea;
 use Filament\Tables\Columns\BadgeColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
@@ -60,26 +60,7 @@ class CommunityPostsTable
                 TrashedFilter::make(),
             ])
             ->recordActions([
-                Action::make('view')
-                    ->modalHeading('帖子详情')
-                    ->modalWidth('5xl')
-                    ->form([
-                        Placeholder::make('title')->label('标题')->content(fn (CommunityPost $record) => $record->title),
-                        Placeholder::make('type')->label('类型')->content(fn (CommunityPost $record) => $record->type === 'question' ? '蜂农提问' : '经验分享'),
-                        Placeholder::make('status')->label('状态')->content(fn (CommunityPost $record) => $record->status),
-                        Placeholder::make('category')->label('分类')->content(fn (CommunityPost $record) => $record->category ?: '—'),
-                        Placeholder::make('disease')->label('关联病种')->content(fn (CommunityPost $record) => $record->disease?->name ?: '—'),
-                        Placeholder::make('author')->label('作者')->content(fn (CommunityPost $record) => $record->author?->display_name ?: '—'),
-                        Placeholder::make('likes')->label('点赞')->content(fn (CommunityPost $record) => (string) $record->likes),
-                        Placeholder::make('views')->label('浏览')->content(fn (CommunityPost $record) => (string) $record->views),
-                        Placeholder::make('replies')->label('回复数')->content(fn (CommunityPost $record) => (string) $record->replies_count),
-                        Placeholder::make('published_at')->label('发布时间')->content(fn (CommunityPost $record) => optional($record->published_at)?->format('Y-m-d H:i') ?: '—'),
-                        Placeholder::make('reviewer')->label('审核人')->content(fn (CommunityPost $record) => $record->reviewer?->display_name ?: '—'),
-                        Placeholder::make('reviewed_at')->label('审核时间')->content(fn (CommunityPost $record) => optional($record->reviewed_at)?->format('Y-m-d H:i') ?: '—'),
-                        Placeholder::make('content')->label('正文')->content(fn (CommunityPost $record) => $record->content ?: '—'),
-                        Placeholder::make('images')->label('图片ID')->content(fn (CommunityPost $record) => empty($record->images) ? '—' : implode(', ', array_map('strval', $record->images))),
-                        Placeholder::make('reject_reason')->label('驳回原因')->content(fn (CommunityPost $record) => $record->reject_reason ?: '—'),
-                    ]),
+                ViewAction::make()->label('详情'),
                 Action::make('approve')
                     ->label('通过')
                     ->color('success')
