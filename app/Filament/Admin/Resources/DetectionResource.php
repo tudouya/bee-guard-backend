@@ -170,6 +170,11 @@ class DetectionResource extends Resource
                         });
                     })
                     ->toggleable(),
+                TextColumn::make('user.phone')
+                    ->label('用户手机号')
+                    ->searchable()
+                    ->formatStateUsing(fn (?string $state): string => $state ?: '—')
+                    ->toggleable(),
                 TextColumn::make('sample_no')->label('样品编号')->searchable()->sortable(),
                 TextColumn::make('sample_type')->label('样品类型')->badge()->toggleable(),
                 TextColumn::make('sampled_at')->label('取样时间')->dateTime()->sortable(),
@@ -279,7 +284,7 @@ class DetectionResource extends Resource
                     ->disabled()
                     ->tooltip('等模板与字段稳定后提供导入'),
             ])
-            ->modifyQueryUsing(fn ($query) => $query->with(['detectionCode']));
+            ->modifyQueryUsing(fn ($query) => $query->with(['detectionCode', 'user']));
     }
 
     public static function getRelations(): array
