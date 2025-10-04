@@ -3,7 +3,9 @@
 namespace App\Filament\Admin\Resources\CommunityPosts;
 
 use App\Filament\Admin\Resources\CommunityPosts\Pages\ListCommunityPosts;
+use App\Filament\Admin\Resources\CommunityPosts\Pages\ViewCommunityPost;
 use App\Filament\Admin\Resources\CommunityPosts\Schemas\CommunityPostForm;
+use App\Filament\Admin\Resources\CommunityPosts\Schemas\CommunityPostInfolist;
 use App\Filament\Admin\Resources\CommunityPosts\Tables\CommunityPostsTable;
 use App\Models\CommunityPost;
 use BackedEnum;
@@ -30,6 +32,11 @@ class CommunityPostResource extends Resource
         return CommunityPostForm::configure($schema);
     }
 
+    public static function infolist(Schema $schema): Schema
+    {
+        return CommunityPostInfolist::configure($schema);
+    }
+
     public static function table(Table $table): Table
     {
         return CommunityPostsTable::configure($table);
@@ -46,6 +53,7 @@ class CommunityPostResource extends Resource
     {
         return [
             'index' => ListCommunityPosts::route('/'),
+            'view' => ViewCommunityPost::route('/{record}'),
         ];
     }
 
