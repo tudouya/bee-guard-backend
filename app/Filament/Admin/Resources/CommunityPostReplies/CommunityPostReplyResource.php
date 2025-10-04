@@ -24,6 +24,7 @@ class CommunityPostReplyResource extends Resource
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedRectangleStack;
     protected static UnitEnum|string|null $navigationGroup = '社区管理';
     protected static ?string $navigationLabel = '帖子回复';
+    protected static ?int $pendingCountCache = null;
 
     protected static ?string $recordTitleAttribute = 'id';
 
@@ -63,5 +64,30 @@ class CommunityPostReplyResource extends Resource
             ->withoutGlobalScopes([
                 SoftDeletingScope::class,
             ]);
+    }
+
+    protected static function getPendingCount(): int
+    {
+        return static::$pendingCountCache ??=
+            CommunityPostReply::query()
+                ->where('status', 'pending')
+                ->count();
+    }
+
+    public static function getNavigationBadge(): ?string
+    {
+        $count = static::getPendingCount();
+
+        return $count > 0 ? (string) $count : null;
+    }
+
+    public static function getNavigationBadgeColor(): ?string
+    {
+        return static::getPendingCount() > 0 ? 'warning' : 'gray';
+    }
+
+    public static function getNavigationBadgeTooltip(): ?string
+    {
+        return '待审核回复数量';
     }
 }

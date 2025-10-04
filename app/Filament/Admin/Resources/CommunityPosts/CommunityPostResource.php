@@ -24,8 +24,34 @@ class CommunityPostResource extends Resource
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedRectangleStack;
     protected static UnitEnum|string|null $navigationGroup = '社区管理';
     protected static ?string $navigationLabel = '社区帖子';
+    protected static ?int $pendingCountCache = null;
 
     protected static ?string $recordTitleAttribute = 'title';
+
+    protected static function getPendingCount(): int
+    {
+        return static::$pendingCountCache ??=
+            CommunityPost::query()
+                ->where('status', 'pending')
+                ->count();
+    }
+
+    public static function getNavigationBadge(): ?string
+    {
+        $count = static::getPendingCount();
+
+        return $count > 0 ? (string) $count : null;
+    }
+
+    public static function getNavigationBadgeColor(): ?string
+    {
+        return static::getPendingCount() > 0 ? 'warning' : 'gray';
+    }
+
+    public static function getNavigationBadgeTooltip(): ?string
+    {
+        return '待审核帖子数量';
+    }
 
     public static function form(Schema $schema): Schema
     {
