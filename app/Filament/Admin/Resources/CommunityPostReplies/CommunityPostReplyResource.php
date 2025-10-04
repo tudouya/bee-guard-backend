@@ -3,7 +3,9 @@
 namespace App\Filament\Admin\Resources\CommunityPostReplies;
 
 use App\Filament\Admin\Resources\CommunityPostReplies\Pages\ListCommunityPostReplies;
+use App\Filament\Admin\Resources\CommunityPostReplies\Pages\ViewCommunityPostReply;
 use App\Filament\Admin\Resources\CommunityPostReplies\Schemas\CommunityPostReplyForm;
+use App\Filament\Admin\Resources\CommunityPostReplies\Schemas\CommunityPostReplyInfolist;
 use App\Filament\Admin\Resources\CommunityPostReplies\Tables\CommunityPostRepliesTable;
 use App\Models\CommunityPostReply;
 use BackedEnum;
@@ -30,6 +32,11 @@ class CommunityPostReplyResource extends Resource
         return CommunityPostReplyForm::configure($schema);
     }
 
+    public static function infolist(Schema $schema): Schema
+    {
+        return CommunityPostReplyInfolist::configure($schema);
+    }
+
     public static function table(Table $table): Table
     {
         return CommunityPostRepliesTable::configure($table);
@@ -46,6 +53,7 @@ class CommunityPostReplyResource extends Resource
     {
         return [
             'index' => ListCommunityPostReplies::route('/'),
+            'view' => ViewCommunityPostReply::route('/{record}'),
         ];
     }
 

@@ -3,8 +3,6 @@
 namespace App\Filament\Admin\Resources\CommunityPostReplies\Tables;
 
 use App\Models\CommunityPostReply;
-use Filament\Forms\Components\Placeholder;
-use Filament\Forms\Components\Textarea;
 use Filament\Actions\Action;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\ActionGroup;
@@ -12,6 +10,7 @@ use Filament\Actions\DeleteAction;
 use Filament\Actions\RestoreAction;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\RestoreBulkAction;
+use Filament\Actions\ViewAction;
 use Filament\Tables\Columns\BadgeColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
@@ -57,19 +56,7 @@ class CommunityPostRepliesTable
                 TrashedFilter::make(),
             ])
             ->recordActions([
-                Action::make('view')
-                    ->modalHeading('回复详情')
-                    ->modalWidth('xl')
-                    ->form([
-                        Placeholder::make('post')->label('所属帖子')->content(fn (CommunityPostReply $record) => $record->post?->title ?: '—'),
-                        Placeholder::make('status')->label('状态')->content(fn (CommunityPostReply $record) => $record->status),
-                        Placeholder::make('reply_type')->label('回复类型')->content(fn (CommunityPostReply $record) => $record->reply_type),
-                        Placeholder::make('author')->label('作者')->content(fn (CommunityPostReply $record) => $record->author?->display_name ?: '—'),
-                        Placeholder::make('published_at')->label('发布时间')->content(fn (CommunityPostReply $record) => optional($record->published_at)?->format('Y-m-d H:i') ?: '—'),
-                        Placeholder::make('created_at')->label('创建时间')->content(fn (CommunityPostReply $record) => optional($record->created_at)?->format('Y-m-d H:i') ?: '—'),
-                        Placeholder::make('content')->label('内容')->content(fn (CommunityPostReply $record) => $record->content ?: '—'),
-                        Placeholder::make('reject_reason')->label('驳回原因')->content(fn (CommunityPostReply $record) => $record->reject_reason ?: '—'),
-                    ]),
+                ViewAction::make()->label('详情'),
                 Action::make('approve')
                     ->label('通过')
                     ->color('success')
@@ -89,7 +76,7 @@ class CommunityPostRepliesTable
                     ->visible(fn (CommunityPostReply $record) => $record->status !== 'rejected')
                     ->requiresConfirmation()
                     ->form([
-                        Textarea::make('reason')->label('驳回原因')->required()->maxLength(255),
+                        \Filament\Forms\Components\Textarea::make('reason')->label('驳回原因')->required()->maxLength(255),
                     ])
                     ->action(function (CommunityPostReply $record, array $data) {
                         $user = auth()->user();
