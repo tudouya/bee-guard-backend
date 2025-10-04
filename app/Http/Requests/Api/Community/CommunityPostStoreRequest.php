@@ -16,7 +16,7 @@ class CommunityPostStoreRequest extends FormRequest
         return [
             'type' => ['required', 'string', 'in:question,experience'],
             'title' => ['required', 'string', 'min:4', 'max:160'],
-            'content' => ['required', 'string', 'min:20', 'max:2000'],
+            'content' => ['required', 'string', 'max:2000'],
             'images' => ['sometimes', 'array', 'max:3'],
             'images.*' => ['integer', 'min:1'],
             'disease_code' => ['nullable', 'string'],
