@@ -119,6 +119,7 @@ class ReplyController extends Controller
     {
         $author = $reply->author;
         $nickname = $author?->nickname ?: $author?->name ?: '蜂友';
+        $role = $author?->role;
 
         $children = $reply->children()
             ->with('author')
@@ -128,6 +129,7 @@ class ReplyController extends Controller
             ->map(function (CommunityPostReply $child) {
                 $author = $child->author;
                 $nickname = $author?->nickname ?: $author?->name ?: '蜂友';
+                $role = $author?->role;
 
                 return [
                     'id' => $child->id,
@@ -137,6 +139,7 @@ class ReplyController extends Controller
                         'id' => $author?->id,
                         'nickname' => $nickname,
                         'avatar' => $author?->avatar,
+                        'role' => $role,
                     ],
                     'published_at' => optional($child->published_at)->setTimezone('Asia/Shanghai')?->toDateTimeString(),
                 ];
@@ -150,6 +153,7 @@ class ReplyController extends Controller
                 'id' => $author?->id,
                 'nickname' => $nickname,
                 'avatar' => $author?->avatar,
+                'role' => $role,
             ],
             'children' => $children,
             'published_at' => optional($reply->published_at)->setTimezone('Asia/Shanghai')?->toDateTimeString(),

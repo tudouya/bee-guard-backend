@@ -68,6 +68,7 @@ class PostController extends Controller
             $author = $post->author;
             $nickname = $author?->nickname ?: $author?->name ?: '蜂友';
             $avatar = $author?->avatar;
+            $role = $author?->role;
 
             return [
                 'id' => $post->id,
@@ -78,6 +79,7 @@ class PostController extends Controller
                     'id' => $author?->id,
                     'nickname' => $nickname,
                     'avatar' => $avatar,
+                    'role' => $role,
                 ],
                 'category' => $post->category,
                 'disease' => $post->disease?->only(['id', 'code', 'name']),
@@ -120,6 +122,7 @@ class PostController extends Controller
         $author = $post->author;
         $nickname = $author?->nickname ?: $author?->name ?: '蜂友';
         $avatar = $author?->avatar;
+        $role = $author?->role;
         $images = $this->transformImages($post->images ?? []);
 
         $liked = false;
@@ -144,6 +147,7 @@ class PostController extends Controller
                     'id' => $author?->id,
                     'nickname' => $nickname,
                     'avatar' => $avatar,
+                    'role' => $role,
                 ],
                 'category' => $post->category,
                 'disease' => $post->disease?->only(['id', 'code', 'name']),
