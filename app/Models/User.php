@@ -68,6 +68,7 @@ class User extends Authenticatable implements FilamentUser
         return match ($panel->getId()) {
             'admin' => false, // non-super admins cannot access admin panel
             'enterprise' => $role === 'enterprise_admin',
+            'inspector' => $role === 'inspector',
             default => false,
         };
     }

@@ -135,14 +135,21 @@ class CouponTemplateForm
                 ->columnSpanFull(),
         ];
 
-        return [
-            Section::make('券基础信息')
-                ->description($config['description'] ?? null)
-                ->schema($schema)
-                ->columns($config['columns'] ?? [
-                    'default' => 1,
-                    'md' => 2,
-                ]),
-        ];
+        $section = Section::make('券基础信息')
+            ->description($config['description'] ?? null)
+            ->schema($schema)
+            ->columns($config['columns'] ?? [
+                'default' => 1,
+                'md' => 2,
+            ]);
+
+        if (isset($config['sectionColumnSpan'])) {
+            $section->columnSpan($config['sectionColumnSpan']);
+            $section->extraAttributes(['class' => 'mx-auto']);
+        } else {
+            $section->columnSpanFull();
+        }
+
+        return [$section];
     }
 }

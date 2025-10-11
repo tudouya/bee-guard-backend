@@ -47,20 +47,29 @@ class CouponTemplateResource extends Resource
 
     public static function form(Schema $schema): Schema
     {
-        return $schema->schema(
-            CouponTemplateForm::make([
-                'description' => '提交后将进入平台审核，审核通过后方可用于奖励规则。',
-                'platformOptions' => self::platformOptions(),
-                'enterpriseField' => [
-                    'options' => fn () => self::getEnterpriseOptions(),
-                    'default' => fn () => array_key_first(self::getEnterpriseOptions()),
-                    'disabled' => fn (?CouponTemplate $record) => filled($record),
-                    'helperText' => '若列表为空，请联系平台管理员为账号指派企业。',
-                    'native' => false,
-                    'searchable' => true,
-                ],
+        return $schema
+            ->columns([
+                'default' => 1,
+                'lg' => 12,
             ])
-        );
+            ->schema(
+                CouponTemplateForm::make([
+                    'description' => '提交后将进入平台审核，审核通过后方可用于奖励规则。',
+                    'platformOptions' => self::platformOptions(),
+                    'enterpriseField' => [
+                        'options' => fn () => self::getEnterpriseOptions(),
+                        'default' => fn () => array_key_first(self::getEnterpriseOptions()),
+                        'disabled' => fn (?CouponTemplate $record) => filled($record),
+                        'helperText' => '若列表为空，请联系平台管理员为账号指派企业。',
+                        'native' => false,
+                        'searchable' => true,
+                    ],
+                    'sectionColumnSpan' => [
+                        'default' => 1,
+                        'lg' => 8,
+                    ],
+                ])
+            );
     }
 
     public static function table(Table $table): Table

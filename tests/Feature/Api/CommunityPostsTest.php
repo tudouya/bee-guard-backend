@@ -40,34 +40,40 @@ class CommunityPostsTest extends TestCase
             ->assertJsonFragment(['title' => '如何处理春繁蜜蜂']);
     }
 
-    public function test_farmer_can_create_post(): void
+    public function test_authenticated_roles_can_create_post(): void
     {
         Storage::fake('public');
-        $user = User::factory()->create(['role' => 'farmer']);
 
-        $file = UploadedFile::fake()->image('pic.jpg');
-        $uploadResponse = $this->actingAs($user)->postJson('/api/uploads', ['file' => $file]);
-        $uploadResponse->assertOk();
-        $uploadId = $uploadResponse->json('data.id');
+        $roles = ['farmer', 'enterprise_admin', 'super_admin'];
 
-        $payload = [
-            'type' => 'experience',
-            'title' => '越冬管理经验',
-            'content' => str_repeat('经验分享', 20),
-            'images' => [$uploadId],
-        ];
+        foreach ($roles as $role) {
+            $user = User::factory()->create(['role' => $role]);
 
-        $response = $this->actingAs($user)->postJson('/api/community/posts', $payload);
+            $file = UploadedFile::fake()->image("pic-{$role}.jpg");
+            $uploadResponse = $this->actingAs($user)->postJson('/api/uploads', ['file' => $file]);
+            $uploadResponse->assertOk();
+            $uploadId = $uploadResponse->json('data.id');
 
-        $response->assertCreated()
-            ->assertJsonPath('code', 0)
-            ->assertJsonPath('data.status', 'pending');
+            $title = '经验分享-' . $role;
+            $payload = [
+                'type' => 'experience',
+                'title' => $title,
+                'content' => str_repeat('经验分享', 20),
+                'images' => [$uploadId],
+            ];
 
-        $this->assertDatabaseHas('community_posts', [
-            'title' => '越冬管理经验',
-            'status' => 'pending',
-            'user_id' => $user->id,
-        ]);
+            $response = $this->actingAs($user)->postJson('/api/community/posts', $payload);
+
+            $response->assertCreated()
+                ->assertJsonPath('code', 0)
+                ->assertJsonPath('data.status', 'pending');
+
+            $this->assertDatabaseHas('community_posts', [
+                'title' => $title,
+                'status' => 'pending',
+                'user_id' => $user->id,
+            ]);
+        }
     }
 
     public function test_show_post_increments_views_and_marks_like(): void

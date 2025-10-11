@@ -30,6 +30,13 @@ class Detection extends Model
         // wide-table levels
         'rna_iapv_level','rna_bqcv_level','rna_sbv_level','rna_abpv_level','rna_cbpv_level','rna_dwv_level',
         'dna_afb_level','dna_efb_level','dna_ncer_level','dna_napi_level','dna_cb_level',
+        'pest_large_mite',
+        'pest_small_mite',
+        'pest_wax_moth',
+        'pest_small_hive_beetle',
+        'pest_shield_mite',
+        'pest_scoliidae_wasp',
+        'pest_parasitic_bee_fly',
     ];
 
     protected $casts = [
@@ -38,6 +45,13 @@ class Detection extends Model
         'tested_at' => 'datetime',
         'reported_at' => 'datetime',
         'questionnaire' => 'array',
+        'pest_large_mite' => 'boolean',
+        'pest_small_mite' => 'boolean',
+        'pest_wax_moth' => 'boolean',
+        'pest_small_hive_beetle' => 'boolean',
+        'pest_shield_mite' => 'boolean',
+        'pest_scoliidae_wasp' => 'boolean',
+        'pest_parasitic_bee_fly' => 'boolean',
     ];
 
     public function user(): BelongsTo

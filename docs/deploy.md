@@ -101,9 +101,10 @@ server {
 - Recommended `SESSION_DRIVER=file` to rule out DB session issues initially; switch to `database` after verifying.
 - After changing session settings, run `php artisan optimize:clear` and clear browser cookies for the domain.
 
-## 7) Admin/Enterprise panels
-- Admin: `/admin` (requires user with `role=super_admin`)
-- Enterprise: `/enterprise` (requires user with `role=enterprise_admin`)
+## 7) 后台面板入口
+- Admin：`/admin`（需要 `role=super_admin`）
+- Enterprise：`/enterprise`（需要 `role=enterprise_admin`）
+- Inspector：`/inspector`（需要 `role=inspector`；`super_admin` 亦可访问）
 - Seeder (optional): set `ADMIN_EMAIL` and `ADMIN_PASSWORD` in `.env`, then `php artisan db:seed --force`.
 
 ## 8) Common pitfalls & fixes

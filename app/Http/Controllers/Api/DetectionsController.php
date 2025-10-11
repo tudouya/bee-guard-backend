@@ -140,6 +140,7 @@ class DetectionsController extends Controller
             'results' => $results,
             'positiveCount' => count($positives),
             'positives' => array_values($positives),
+            'pests' => $this->buildPests($d),
             'recommendations' => $recommendations,
         ]);
     }
@@ -173,6 +174,33 @@ class DetectionsController extends Controller
             }
         }
         return $positives;
+    }
+
+    private function pestColumnMap(): array
+    {
+        return [
+            'large_mite' => ['column' => 'pest_large_mite', 'name' => '大蜂螨'],
+            'small_mite' => ['column' => 'pest_small_mite', 'name' => '小蜂螨'],
+            'wax_moth' => ['column' => 'pest_wax_moth', 'name' => '巢虫'],
+            'small_hive_beetle' => ['column' => 'pest_small_hive_beetle', 'name' => '蜂箱小甲虫'],
+            'shield_mite' => ['column' => 'pest_shield_mite', 'name' => '蜂盾螨'],
+            'scoliidae_wasp' => ['column' => 'pest_scoliidae_wasp', 'name' => '斯氏蜜蜂茧蜂'],
+            'parasitic_bee_fly' => ['column' => 'pest_parasitic_bee_fly', 'name' => '异蚤蜂'],
+        ];
+    }
+
+    private function buildPests(Detection $d): array
+    {
+        $items = [];
+        foreach ($this->pestColumnMap() as $code => $meta) {
+            $value = $d->{$meta['column']};
+            $items[] = [
+                'code' => $code,
+                'name' => $meta['name'],
+                'present' => is_null($value) ? null : (bool) $value,
+            ];
+        }
+        return $items;
     }
 
     private function statusText(string $status): string

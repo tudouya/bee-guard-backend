@@ -54,6 +54,7 @@ class UserResource extends Resource
                             ->options([
                                 'super_admin' => '超管',
                                 'enterprise_admin' => '企业管理员',
+                                'inspector' => '检测员',
                                 'farmer' => '蜂农',
                             ])
                             ->required()
@@ -119,6 +120,7 @@ class UserResource extends Resource
                     ->formatStateUsing(fn (?string $state) => match ($state) {
                         'super_admin' => '超管',
                         'enterprise_admin' => '企业管理员',
+                        'inspector' => '检测员',
                         'farmer' => '蜂农',
                         default => $state,
                     })
@@ -130,6 +132,7 @@ class UserResource extends Resource
                     ->options([
                         'super_admin' => '超管',
                         'enterprise_admin' => '企业管理员',
+                        'inspector' => '检测员',
                         'farmer' => '蜂农',
                     ]),
             ])

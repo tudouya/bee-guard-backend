@@ -163,8 +163,8 @@ class PostController extends Controller
     public function store(CommunityPostStoreRequest $request): JsonResponse
     {
         $user = $request->user();
-        if (!$user || $user->role !== 'farmer') {
-            return response()->json(['code' => 403, 'message' => 'ONLY_FARMER_ALLOWED'], 403);
+        if (!$user) {
+            return response()->json(['code' => 401, 'message' => 'UNAUTHENTICATED'], 401);
         }
 
         $payload = $request->validated();

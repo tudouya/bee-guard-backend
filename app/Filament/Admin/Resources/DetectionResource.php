@@ -12,6 +12,7 @@ use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\ToggleButtons;
 use Filament\Resources\Resource;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
@@ -156,6 +157,50 @@ class DetectionResource extends Resource
                         'weak' => '弱', 'medium' => '中', 'strong' => '强',
                     ])->native(false)->nullable(),
                 ])->columns(3),
+
+            Section::make('虫害')
+                ->schema([
+                    ToggleButtons::make('pest_large_mite')
+                        ->label('大蜂螨')
+                        ->boolean('有', '无')
+                        ->default(false)
+                        ->grouped(),
+                    ToggleButtons::make('pest_small_mite')
+                        ->label('小蜂螨')
+                        ->boolean('有', '无')
+                        ->default(false)
+                        ->grouped(),
+                    ToggleButtons::make('pest_wax_moth')
+                        ->label('巢虫')
+                        ->boolean('有', '无')
+                        ->default(false)
+                        ->grouped(),
+                    ToggleButtons::make('pest_small_hive_beetle')
+                        ->label('蜂箱小甲虫')
+                        ->boolean('有', '无')
+                        ->default(false)
+                        ->grouped(),
+                    ToggleButtons::make('pest_shield_mite')
+                        ->label('蜂盾螨')
+                        ->boolean('有', '无')
+                        ->default(false)
+                        ->grouped(),
+                    ToggleButtons::make('pest_scoliidae_wasp')
+                        ->label('斯氏蜜蜂茧蜂')
+                        ->boolean('有', '无')
+                        ->default(false)
+                        ->grouped(),
+                    ToggleButtons::make('pest_parasitic_bee_fly')
+                        ->label('异蚤蜂')
+                        ->boolean('有', '无')
+                        ->default(false)
+                        ->grouped(),
+                ])
+                ->columns([
+                    'default' => 1,
+                    'md' => 2,
+                    'lg' => 3,
+                ]),
         ]);
     }
 

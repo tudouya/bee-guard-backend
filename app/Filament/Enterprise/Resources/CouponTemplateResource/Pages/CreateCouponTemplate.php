@@ -5,11 +5,14 @@ namespace App\Filament\Enterprise\Resources\CouponTemplateResource\Pages;
 use App\Enums\CouponTemplateStatus;
 use App\Filament\Enterprise\Resources\CouponTemplateResource;
 use Filament\Resources\Pages\CreateRecord;
+use Filament\Support\Enums\Width;
 use Illuminate\Support\Facades\Auth;
 
 class CreateCouponTemplate extends CreateRecord
 {
     protected static string $resource = CouponTemplateResource::class;
+
+    protected Width|string|null $maxContentWidth = Width::Full;
 
     protected function mutateFormDataBeforeCreate(array $data): array
     {
