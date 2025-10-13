@@ -16,6 +16,7 @@ use App\Http\Controllers\Api\ShippingNotificationsController;
 use App\Http\Controllers\Api\RewardController;
 use App\Http\Controllers\Api\DetectionsController;
 use App\Http\Controllers\Api\ProfileController;
+use App\Http\Controllers\Api\EnterpriseController;
 
 // Knowledge base (public)
 Route::prefix('knowledge')->group(function () {
@@ -26,6 +27,10 @@ Route::prefix('knowledge')->group(function () {
     Route::get('/articles/{id}', [\App\Http\Controllers\Api\Knowledge\ArticleController::class, 'show']);
     Route::post('/articles/{id}/exposure', [\App\Http\Controllers\Api\Knowledge\ArticleController::class, 'exposure']);
 });
+
+// Enterprises (public)
+Route::get('enterprises', [EnterpriseController::class, 'index']);
+Route::get('enterprises/{enterpriseId}', [EnterpriseController::class, 'show'])->whereNumber('enterpriseId');
 
 Route::prefix('auth/wechat')->group(function () {
     Route::post('login', [WeChatAuthController::class, 'login']);

@@ -7,7 +7,9 @@ use App\Models\Enterprise;
 use App\Services\Naming\EnterprisePrefixSuggester;
 use App\Support\AdminNavigation;
 use Filament\Forms;
+use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Select;
+use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Resources\Resource;
 use Filament\Schemas\Components\Section;
@@ -70,7 +72,52 @@ class EnterpriseResource extends Resource
                         ->label('联系电话')
                         ->tel()
                         ->maxLength(32),
+                    TextInput::make('contact_wechat')
+                        ->label('企业微信')
+                        ->maxLength(128)
+                        ->placeholder('用于小程序“联系合作”展示，可选'),
+                    TextInput::make('contact_link')
+                        ->label('官网链接')
+                        ->url()
+                        ->maxLength(255)
+                        ->placeholder('例如：https://example.com'),
                 ])->columns(2),
+
+            Section::make('展示信息（小程序）')
+                ->schema([
+                    Textarea::make('intro')
+                        ->label('企业简介')
+                        ->rows(4)
+                        ->helperText('用于小程序企业列表与详情的简介展示。')
+                        ->placeholder('例如：专注蜂群疫病检测与防控，服务覆盖西南 8 省，累计服务蜂场 200+。')
+                        ->maxLength(65535),
+                    FileUpload::make('logo_url')
+                        ->label('企业 Logo 图片')
+                        ->image()
+                        ->disk('public')
+                        ->directory('enterprise-logos')
+                        ->imageEditor()
+                        ->maxSize(2048)
+                        ->helperText('上传企业 Logo，建议 1:1 或 4:3 比例。文件支持 JPG/PNG，最大 2MB。'),
+                    Textarea::make('services')
+                        ->label('服务产品列表')
+                        ->rows(3)
+                        ->helperText('使用中文顿号或逗号分隔多个服务，系统会按分隔符拆分为列表展示。')
+                        ->placeholder('蜂病检测、疫病防控培训、数字化蜂场管理')
+                        ->maxLength(512),
+                    Textarea::make('certifications')
+                        ->label('认证资质')
+                        ->rows(3)
+                        ->helperText('同样使用中文顿号/逗号分隔，示例：“蜂业协会认证、ISO9001质量体系认证”。')
+                        ->placeholder('蜂业协会认证、ISO9001质量体系认证')
+                        ->maxLength(512),
+                    Textarea::make('promotions')
+                        ->label('优惠活动')
+                        ->rows(3)
+                        ->helperText('若有多条活动，用中文顿号/逗号分隔；无活动可留空。')
+                        ->placeholder('新签客户首单立减100元、年度套餐赠送1次免费检测')
+                        ->maxLength(512),
+                ])->columns(1),
 
             Section::make('设置')
                 ->schema([

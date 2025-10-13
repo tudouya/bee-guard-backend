@@ -17,6 +17,13 @@ class Enterprise extends Model
         'contact_phone',
         'status',
         'code_prefix',
+        'intro',
+        'logo_url',
+        'certifications',
+        'services',
+        'promotions',
+        'contact_wechat',
+        'contact_link',
         'meta',
     ];
 

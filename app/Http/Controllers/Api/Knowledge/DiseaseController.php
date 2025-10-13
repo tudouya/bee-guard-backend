@@ -13,7 +13,7 @@ class DiseaseController extends Controller
     // GET /api/knowledge/diseases
     public function index(Request $request)
     {
-        $perPage = (int) $request->integer('per_page', 10);
+        $perPage = (int) $request->integer('per_page', 25);
         $perPage = $perPage > 50 ? 50 : ($perPage <= 0 ? 10 : $perPage);
         $page = (int) $request->integer('page', 1);
 
@@ -82,7 +82,7 @@ class DiseaseController extends Controller
     // GET /api/knowledge/diseases/{code}/articles
     public function articles(Request $request, string $code)
     {
-        $perPage = (int) $request->integer('per_page', 10);
+        $perPage = (int) $request->integer('per_page', 25);
         $perPage = $perPage > 50 ? 50 : ($perPage <= 0 ? 10 : $perPage);
         $page = (int) $request->integer('page', 1);
 
@@ -116,4 +116,3 @@ class DiseaseController extends Controller
         ]);
     }
 }
-
