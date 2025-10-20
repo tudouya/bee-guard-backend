@@ -31,7 +31,7 @@ class EnterpriseController extends Controller
                 'summary' => $enterprise->intro,
                 'services' => $this->explodeList($enterprise->services),
                 'certifications' => $this->explodeList($enterprise->certifications),
-                'promotions' => $this->explodeList($enterprise->promotions),
+                'promotions' => $this->formatPromotion($enterprise->promotions),
                 'contact' => $this->formatContact($enterprise),
             ];
         })->values();
@@ -74,7 +74,7 @@ class EnterpriseController extends Controller
                 'summary' => $enterprise->intro,
                 'services' => $this->explodeList($enterprise->services),
                 'certifications' => $this->explodeList($enterprise->certifications),
-                'promotions' => $this->explodeList($enterprise->promotions),
+                'promotions' => $this->formatPromotion($enterprise->promotions),
                 'contact' => $this->formatContact($enterprise),
             ],
         ]);
@@ -86,13 +86,24 @@ class EnterpriseController extends Controller
             return [];
         }
 
-        $segments = preg_split('/[;,\n\r\t，、；]+/', $value) ?: [];
+        $segments = preg_split('/\r\n|\n|\r/u', $value) ?: [];
 
         return collect($segments)
             ->map(fn ($item) => trim((string) $item))
             ->filter()
             ->values()
             ->all();
+    }
+
+    private function formatPromotion(?string $value): ?string
+    {
+        if ($value === null) {
+            return null;
+        }
+
+        $trimmed = trim($value);
+
+        return $trimmed === '' ? null : preg_replace("/\r\n?/", "\n", $trimmed);
     }
 
     private function formatContact(Enterprise $enterprise): ?array

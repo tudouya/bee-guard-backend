@@ -102,20 +102,20 @@ class EnterpriseResource extends Resource
                     Textarea::make('services')
                         ->label('服务产品列表')
                         ->rows(3)
-                        ->helperText('使用中文顿号或逗号分隔多个服务，系统会按分隔符拆分为列表展示。')
-                        ->placeholder('蜂病检测、疫病防控培训、数字化蜂场管理')
+                        ->helperText('每项服务占一行，系统会按换行拆分为列表展示。')
+                        ->placeholder("蜂病检测\n疫病防控培训\n数字化蜂场管理")
                         ->maxLength(512),
                     Textarea::make('certifications')
                         ->label('认证资质')
                         ->rows(3)
-                        ->helperText('同样使用中文顿号/逗号分隔，示例：“蜂业协会认证、ISO9001质量体系认证”。')
-                        ->placeholder('蜂业协会认证、ISO9001质量体系认证')
+                        ->helperText('每行填写一项资质，例如：“蜂业协会认证”。系统按换行拆分。')
+                        ->placeholder("蜂业协会认证\nISO9001质量体系认证")
                         ->maxLength(512),
                     Textarea::make('promotions')
                         ->label('优惠活动')
                         ->rows(3)
-                        ->helperText('若有多条活动，用中文顿号/逗号分隔；无活动可留空。')
-                        ->placeholder('新签客户首单立减100元、年度套餐赠送1次免费检测')
+                        ->helperText('当前仅支持展示一条活动描述，可包含多段文字。留空表示暂无优惠。')
+                        ->placeholder('新签客户首单立减100元，详询小程序客服。')
                         ->maxLength(512),
                 ])->columns(1),
 

@@ -17,10 +17,22 @@ class Product extends Model
         'url',
         'media',
         'status',
+        'homepage_featured',
+        'homepage_sort_order',
+        'homepage_registration_no',
+        'homepage_applicable_scene',
+        'homepage_highlights',
+        'homepage_cautions',
+        'homepage_price',
+        'homepage_contact_company',
+        'homepage_contact_phone',
+        'homepage_contact_wechat',
+        'homepage_contact_website',
     ];
 
     protected $casts = [
         'media' => 'array',
+        'homepage_featured' => 'boolean',
     ];
 
     public function enterprise(): BelongsTo
@@ -33,5 +45,10 @@ class Product extends Model
         return $this->belongsToMany(Disease::class, 'disease_product')
             ->withPivot(['priority', 'note'])
             ->withTimestamps();
+    }
+
+    public function homepageImages()
+    {
+        return $this->hasMany(ProductHomepageImage::class)->orderBy('position');
     }
 }

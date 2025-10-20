@@ -17,6 +17,8 @@ use App\Http\Controllers\Api\RewardController;
 use App\Http\Controllers\Api\DetectionsController;
 use App\Http\Controllers\Api\ProfileController;
 use App\Http\Controllers\Api\EnterpriseController;
+use App\Http\Controllers\Api\HomepageRecommendationsController;
+use App\Http\Controllers\Api\ProductController;
 
 // Knowledge base (public)
 Route::prefix('knowledge')->group(function () {
@@ -72,6 +74,9 @@ Route::middleware('auth:sanctum')->group(function () {
     // Detections (results)
     Route::get('detections', [DetectionsController::class, 'index']);
     Route::get('detections/{id}', [DetectionsController::class, 'show']);
+
+    Route::get('recommendations/homepage', [HomepageRecommendationsController::class, 'index']);
+    Route::get('products/{productId}', [ProductController::class, 'show'])->whereNumber('productId');
 
     Route::get('rewards', [RewardController::class, 'index']);
     Route::get('rewards/summary', [RewardController::class, 'summary']);

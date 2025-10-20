@@ -8,6 +8,7 @@ use App\Models\Product;
 use App\Models\RecommendationRule;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Storage;
 
 class RecommendationEngine
 {
@@ -78,15 +79,7 @@ class RecommendationEngine
                 return;
             }
             $selectedProductIds[] = (int) $p->id;
-            $out[] = [
-                'productId' => $p->id,
-                'productName' => (string) $p->name,
-                'brief' => (string) ($p->brief ?? ''),
-                'url' => $p->url,
-                // enterprise = 企业推荐；非 enterprise 展示为平台推荐
-                'source' => $sourceLabel,
-                'targetType' => filled($p->url) ? 'external' : 'internal',
-            ];
+            $out[] = $this->formatProduct($p, $sourceLabel);
         };
 
         // Query active rules within window helper
@@ -102,7 +95,12 @@ class RecommendationEngine
             ->whereHas('product', function ($q) {
                 $q->where('status', 'active');
             })
-            ->with(['product:id,name,brief,url,enterprise_id,status']);
+            ->with(['product' => fn ($query) => $query
+                ->with([
+                    'enterprise:id,name,contact_phone,contact_wechat,contact_link',
+                    'homepageImages',
+                ])
+            ]);
 
         // Applies_to filter based on source
         $applies = $source === 'gift' ? ['gift', 'any'] : ['self_paid', 'any'];
@@ -134,6 +132,10 @@ class RecommendationEngine
                 ->whereIn('disease_product.disease_id', $diseaseIds)
                 ->where('products.status', 'active')
                 ->where('products.enterprise_id', $enterpriseId)
+                ->with([
+                    'enterprise:id,name,contact_phone,contact_wechat,contact_link',
+                    'homepageImages',
+                ])
                 ->orderBy('disease_product.priority')
                 ->orderBy('products.id');
             foreach ($q1->get() as $p) {
@@ -147,6 +149,10 @@ class RecommendationEngine
                 ->whereIn('disease_product.disease_id', $diseaseIds)
                 ->where('products.status', 'active')
                 ->when(!empty($selectedProductIds), fn ($q) => $q->whereNotIn('products.id', $selectedProductIds))
+                ->with([
+                    'enterprise:id,name,contact_phone,contact_wechat,contact_link',
+                    'homepageImages',
+                ])
                 ->orderBy('disease_product.priority')
                 ->orderBy('products.id');
             foreach ($q2->get() as $p) {
@@ -174,6 +180,10 @@ class RecommendationEngine
                 ->whereIn('disease_product.disease_id', $diseaseIds)
                 ->where('products.status', 'active')
                 ->when(!empty($selectedProductIds), fn ($qb) => $qb->whereNotIn('products.id', $selectedProductIds))
+                ->with([
+                    'enterprise:id,name,contact_phone,contact_wechat,contact_link',
+                    'homepageImages',
+                ])
                 ->orderBy('disease_product.priority')
                 ->orderBy('products.id');
             foreach ($q->get() as $p) {
@@ -182,5 +192,177 @@ class RecommendationEngine
         }
 
         return $out;
+    }
+
+    public function homepageRecommendations(): array
+    {
+        $products = Product::query()
+            ->where('homepage_featured', true)
+            ->where('status', 'active')
+            ->with([
+                'homepageImages',
+                'enterprise:id,name,contact_phone,contact_wechat,contact_link',
+            ])
+            ->orderBy('homepage_sort_order')
+            ->orderBy('id')
+            ->get();
+
+        return $products->map(function (Product $product) {
+            $source = $product->enterprise_id ? 'enterprise' : 'platform';
+            $formatted = $this->formatProduct($product, $source);
+
+            return array_merge(
+                Arr::only($formatted, ['productId', 'productName', 'brief', 'url', 'source', 'targetType']),
+                [
+                    'sortOrder' => (int) ($product->homepage_sort_order ?? 0),
+                    'images' => $formatted['homepage']['images'] ?? [],
+                    'registrationNo' => $formatted['homepage']['registrationNo'] ?? null,
+                    'applicableScene' => $formatted['homepage']['applicableScene'] ?? [],
+                    'highlights' => $formatted['homepage']['highlights'] ?? [],
+                    'cautions' => $formatted['homepage']['cautions'] ?? [],
+                    'price' => $formatted['homepage']['price'] ?? null,
+                    'contact' => $formatted['homepage']['contact'] ?? null,
+                ]
+            );
+        })->all();
+    }
+
+    public function productDetail(int $productId): ?array
+    {
+        $product = Product::query()
+            ->with([
+                'homepageImages',
+                'enterprise',
+            ])
+            ->find($productId);
+
+        if (!$product || $product->status !== 'active') {
+            return null;
+        }
+
+        $source = $product->enterprise_id ? 'enterprise' : 'platform';
+        $base = $this->formatProduct($product, $source);
+
+        $media = $product->media ?? null;
+
+        $enterprise = $product->enterprise
+            ? [
+                'id' => $product->enterprise->id,
+                'name' => $product->enterprise->name,
+                'intro' => $this->trimNullable($product->enterprise->intro ?? null),
+                'logoUrl' => $this->resolveImageUrl($product->enterprise->logo_url ?? null),
+                'contact' => [
+                    'phone' => $this->trimNullable($product->enterprise->contact_phone ?? null),
+                    'wechat' => $this->trimNullable($product->enterprise->contact_wechat ?? null),
+                    'website' => $this->trimNullable($product->enterprise->contact_link ?? null),
+                ],
+            ]
+            : null;
+
+        return array_merge($base, [
+            'media' => $media,
+            'enterprise' => $enterprise,
+        ]);
+    }
+
+    private function formatProduct(Product $product, string $sourceLabel): array
+    {
+        $product->loadMissing([
+            'homepageImages',
+            'enterprise:id,name,contact_phone,contact_wechat,contact_link',
+        ]);
+
+        $data = [
+            'productId' => $product->id,
+            'productName' => (string) $product->name,
+            'brief' => (string) ($product->brief ?? ''),
+            'url' => $product->url,
+            'source' => $sourceLabel,
+            'targetType' => filled($product->url) ? 'external' : 'internal',
+        ];
+
+        $data['homepage'] = $product->homepage_featured ? [
+            'images' => $product->homepageImages
+                ->sortBy('position')
+                ->map(fn ($image) => $this->resolveImageUrl($image->path))
+                ->filter()
+                ->values()
+                ->all(),
+            'registrationNo' => $this->trimNullable($product->homepage_registration_no),
+            'applicableScene' => $this->splitLines($product->homepage_applicable_scene),
+            'highlights' => $this->splitLines($product->homepage_highlights),
+            'cautions' => $this->splitLines($product->homepage_cautions),
+            'price' => $this->trimNullable($product->homepage_price),
+            'contact' => $this->buildContact($product),
+        ] : null;
+
+        return $data;
+    }
+
+    private function buildContact(Product $product): ?array
+    {
+        $contact = [
+            'company' => $this->trimNullable($product->homepage_contact_company) ?? optional($product->enterprise)->name,
+            'phone' => $this->trimNullable($product->homepage_contact_phone),
+            'wechat' => $this->trimNullable($product->homepage_contact_wechat),
+            'website' => $this->trimNullable($product->homepage_contact_website) ?? $this->trimNullable(optional($product->enterprise)->contact_link),
+        ];
+
+        $hasValue = collect($contact)->some(fn ($value) => filled($value));
+
+        return $hasValue ? $contact : null;
+    }
+
+    private function splitLines(?string $value): array
+    {
+        if ($value === null) {
+            return [];
+        }
+
+        $normalized = preg_replace("/\r\n?/", "\n", trim($value));
+
+        if ($normalized === '') {
+            return [];
+        }
+
+        return collect(explode("\n", $normalized))
+            ->map(fn ($line) => trim($line))
+            ->filter()
+            ->values()
+            ->all();
+    }
+
+    private function trimNullable(?string $value): ?string
+    {
+        if ($value === null) {
+            return null;
+        }
+
+        $trimmed = trim($value);
+
+        return $trimmed === '' ? null : $trimmed;
+    }
+
+    private function resolveImageUrl(?string $value): ?string
+    {
+        if (blank($value)) {
+            return null;
+        }
+
+        if (preg_match('/^https?:\/\//i', $value)) {
+            return $value;
+        }
+
+        $disk = config('filament.default_filesystem_disk') ?: config('filesystems.default', 'public');
+
+        try {
+            return Storage::disk($disk)->url($value);
+        } catch (\Throwable $e) {
+            try {
+                return Storage::disk('public')->url($value);
+            } catch (\Throwable $e2) {
+                return null;
+            }
+        }
     }
 }
