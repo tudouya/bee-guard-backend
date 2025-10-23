@@ -243,8 +243,6 @@ class RecommendationEngine
         $source = $product->enterprise_id ? 'enterprise' : 'platform';
         $base = $this->formatProduct($product, $source);
 
-        $media = $product->media ?? null;
-
         $enterprise = $product->enterprise
             ? [
                 'id' => $product->enterprise->id,
@@ -260,7 +258,6 @@ class RecommendationEngine
             : null;
 
         return array_merge($base, [
-            'media' => $media,
             'enterprise' => $enterprise,
         ]);
     }

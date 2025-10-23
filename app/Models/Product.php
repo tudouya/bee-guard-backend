@@ -15,7 +15,6 @@ class Product extends Model
         'name',
         'brief',
         'url',
-        'media',
         'status',
         'homepage_featured',
         'homepage_sort_order',
@@ -31,7 +30,6 @@ class Product extends Model
     ];
 
     protected $casts = [
-        'media' => 'array',
         'homepage_featured' => 'boolean',
     ];
 

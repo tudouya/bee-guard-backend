@@ -45,6 +45,9 @@ Route::prefix('community')->group(function () {
     Route::get('posts/{postId}/replies', [CommunityReplyController::class, 'index'])->whereNumber('postId');
 });
 
+Route::get('recommendations/homepage', [HomepageRecommendationsController::class, 'index']);
+Route::get('products/{productId}', [ProductController::class, 'show'])->whereNumber('productId');
+
 Route::middleware('auth:sanctum')->group(function () {
     // Profile
     Route::get('profile', [ProfileController::class, 'show']);
@@ -74,9 +77,6 @@ Route::middleware('auth:sanctum')->group(function () {
     // Detections (results)
     Route::get('detections', [DetectionsController::class, 'index']);
     Route::get('detections/{id}', [DetectionsController::class, 'show']);
-
-    Route::get('recommendations/homepage', [HomepageRecommendationsController::class, 'index']);
-    Route::get('products/{productId}', [ProductController::class, 'show'])->whereNumber('productId');
 
     Route::get('rewards', [RewardController::class, 'index']);
     Route::get('rewards/summary', [RewardController::class, 'summary']);

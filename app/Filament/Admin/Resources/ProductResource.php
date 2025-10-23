@@ -63,22 +63,6 @@ class ProductResource extends Resource
             Section::make('内容与媒体')
                 ->schema([
                     Textarea::make('brief')->label('简介')->rows(4),
-                    Textarea::make('media')
-                        ->label('媒体配置（JSON）')
-                        ->rows(4)
-                        ->helperText('可选，JSON 结构：例如 {"images": ["..."], "video": "..."}')
-                        ->afterStateHydrated(function ($component, $state) {
-                            if (is_array($state)) {
-                                $component->state(json_encode($state, JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES));
-                            }
-                        })
-                        ->dehydrateStateUsing(function ($state) {
-                            if (is_string($state) && $state !== '') {
-                                try { return json_decode($state, true, 512, JSON_THROW_ON_ERROR); }
-                                catch (\Throwable) { return null; }
-                            }
-                            return null;
-                        }),
                 ]),
 
             Section::make('首页推荐设置')
