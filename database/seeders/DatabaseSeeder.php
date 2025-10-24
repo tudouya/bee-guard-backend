@@ -32,6 +32,7 @@ class DatabaseSeeder extends Seeder
 
         // 初始化首批疾病字典（按当前需求覆盖）
         $this->call([
+            RegionsSeeder::class,
             DiseasesBootstrapSeeder::class,
         ]);
     }

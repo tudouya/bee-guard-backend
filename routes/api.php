@@ -19,6 +19,8 @@ use App\Http\Controllers\Api\ProfileController;
 use App\Http\Controllers\Api\EnterpriseController;
 use App\Http\Controllers\Api\HomepageRecommendationsController;
 use App\Http\Controllers\Api\ProductController;
+use App\Http\Controllers\Api\RegionController;
+use App\Http\Controllers\Api\EpidemicBulletinController;
 
 // Knowledge base (public)
 Route::prefix('knowledge')->group(function () {
@@ -33,6 +35,17 @@ Route::prefix('knowledge')->group(function () {
 // Enterprises (public)
 Route::get('enterprises', [EnterpriseController::class, 'index']);
 Route::get('enterprises/{enterpriseId}', [EnterpriseController::class, 'show'])->whereNumber('enterpriseId');
+
+Route::prefix('regions')->group(function () {
+    Route::get('provinces', [RegionController::class, 'provinces']);
+    Route::get('{provinceCode}/cities', [RegionController::class, 'cities'])->where('provinceCode', '[0-9]+');
+    Route::get('{cityCode}/districts', [RegionController::class, 'districts'])->where('cityCode', '[0-9]+');
+});
+
+Route::prefix('epidemic')->group(function () {
+    Route::get('bulletins', [EpidemicBulletinController::class, 'index']);
+    Route::get('bulletins/{id}', [EpidemicBulletinController::class, 'show'])->whereNumber('id');
+});
 
 Route::prefix('auth/wechat')->group(function () {
     Route::post('login', [WeChatAuthController::class, 'login']);
