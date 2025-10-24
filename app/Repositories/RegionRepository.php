@@ -33,6 +33,16 @@ class RegionRepository
             ->get();
     }
 
+    public function getProvinceDistricts(string $provinceCode): Collection
+    {
+        return Region::query()
+            ->where('province_code', $provinceCode)
+            ->whereNotNull('city_code')
+            ->whereColumn('city_code', '!=', 'code')
+            ->orderBy('code')
+            ->get();
+    }
+
     public function findByCode(string $code): ?Region
     {
         return Region::query()->where('code', $code)->first();

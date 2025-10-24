@@ -42,6 +42,16 @@ class DiseaseResource extends Resource
                         ->label('病种名称')
                         ->required()
                         ->maxLength(191),
+                    TextInput::make('map_alias')
+                        ->label('地图展示名称')
+                        ->maxLength(191)
+                        ->helperText('若留空则使用病种名称。'),
+                    TextInput::make('map_color')
+                        ->label('地图颜色')
+                        ->placeholder('#F05A5A')
+                        ->maxLength(7)
+                        ->regex('/^#?[0-9A-Fa-f]{6}$/')
+                        ->helperText('16 进制颜色值，例如 #F05A5A'),
                     TextInput::make('brief')
                         ->label('摘要')
                         ->maxLength(191),
@@ -55,6 +65,11 @@ class DiseaseResource extends Resource
                         ->label('排序值')
                         ->numeric()
                         ->default(0),
+                    TextInput::make('map_order')
+                        ->label('地图排序')
+                        ->numeric()
+                        ->default(0)
+                        ->helperText('用于疫情地图图例排序，值越小越靠前。'),
                 ])->columns(2),
             Section::make('详情内容')
                 ->schema([
@@ -86,6 +101,11 @@ class DiseaseResource extends Resource
                 TextColumn::make('id')->label('ID')->sortable()->toggleable(),
                 TextColumn::make('code')->label('病种代码')->searchable()->sortable(),
                 TextColumn::make('name')->label('病种名称')->searchable()->sortable(),
+                TextColumn::make('map_alias')->label('地图名称')->toggleable(),
+                TextColumn::make('map_color')
+                    ->label('颜色')
+                    ->formatStateUsing(fn (?string $state) => $state ?: '-')
+                    ->toggleable(),
                 TextColumn::make('published_articles_count')->label('发布文章数')->sortable(),
                 TextColumn::make('status')
                     ->label('状态')
@@ -97,6 +117,7 @@ class DiseaseResource extends Resource
                     })
                     ->sortable(),
                 TextColumn::make('sort')->label('排序值')->sortable(),
+                TextColumn::make('map_order')->label('地图排序')->sortable()->toggleable(),
                 TextColumn::make('updated_at')->dateTime()->label('更新时间')->sortable(),
             ])
             ->filters([])

@@ -21,6 +21,7 @@ use App\Http\Controllers\Api\HomepageRecommendationsController;
 use App\Http\Controllers\Api\ProductController;
 use App\Http\Controllers\Api\RegionController;
 use App\Http\Controllers\Api\EpidemicBulletinController;
+use App\Http\Controllers\Api\EpidemicMapController;
 
 // Knowledge base (public)
 Route::prefix('knowledge')->group(function () {
@@ -38,6 +39,7 @@ Route::get('enterprises/{enterpriseId}', [EnterpriseController::class, 'show'])-
 
 Route::prefix('regions')->group(function () {
     Route::get('provinces', [RegionController::class, 'provinces']);
+    Route::get('provinces/{provinceCode}/districts', [RegionController::class, 'provinceDistricts'])->where('provinceCode', '[0-9]+');
     Route::get('{provinceCode}/cities', [RegionController::class, 'cities'])->where('provinceCode', '[0-9]+');
     Route::get('{cityCode}/districts', [RegionController::class, 'districts'])->where('cityCode', '[0-9]+');
 });
@@ -45,6 +47,7 @@ Route::prefix('regions')->group(function () {
 Route::prefix('epidemic')->group(function () {
     Route::get('bulletins', [EpidemicBulletinController::class, 'index']);
     Route::get('bulletins/{id}', [EpidemicBulletinController::class, 'show'])->whereNumber('id');
+    Route::get('map/pie', [EpidemicMapController::class, 'pie']);
 });
 
 Route::prefix('auth/wechat')->group(function () {

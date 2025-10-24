@@ -1,0 +1,40 @@
+<?php
+
+namespace App\Filament\Admin\Resources\EpidemicMapDatasetResource\Pages;
+
+use App\Filament\Admin\Resources\EpidemicMapDatasetResource;
+use App\Models\Region;
+use Filament\Resources\Pages\CreateRecord;
+
+class CreateEpidemicMapDataset extends CreateRecord
+{
+    protected static string $resource = EpidemicMapDatasetResource::class;
+
+    protected static ?string $title = '新增疫情地图数据';
+
+    protected static ?string $breadcrumb = '新增地图数据';
+
+    protected function mutateFormDataBeforeCreate(array $data): array
+    {
+        if (!empty($data['district_code']) && empty($data['city_code'])) {
+            $region = Region::query()->where('code', $data['district_code'])->first();
+            $data['city_code'] = $region?->city_code;
+        }
+
+        if (empty($data['data_updated_at'])) {
+            $data['data_updated_at'] = now();
+        }
+
+        if ($userId = auth()->id()) {
+            $data['created_by'] = $userId;
+            $data['updated_by'] = $userId;
+        }
+
+        return $data;
+    }
+
+    protected function getRedirectUrl(): string
+    {
+        return static::getResource()::getUrl('index');
+    }
+}

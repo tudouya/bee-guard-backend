@@ -68,6 +68,26 @@ class RegionController extends Controller
         return response()->json(['data' => $items]);
     }
 
+    public function provinceDistricts(string $provinceCode): JsonResponse
+    {
+        if (!$this->validCode($provinceCode)) {
+            return response()->json(['data' => []]);
+        }
+
+        $cacheKey = 'regions:province-districts:' . $provinceCode;
+
+        $items = Cache::rememberForever($cacheKey, function () use ($provinceCode) {
+            return $this->regions->getProvinceDistricts($provinceCode)
+                ->map(fn ($region) => [
+                    'code' => $region->code,
+                    'name' => $region->name,
+                ])
+                ->values();
+        });
+
+        return response()->json(['data' => $items]);
+    }
+
     private function validCode(string $code): bool
     {
         return (bool) preg_match('/^\d{2,12}$/', $code);

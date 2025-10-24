@@ -5,6 +5,7 @@ namespace App\Filament\Admin\Resources;
 use App\Filament\Admin\Resources\DetectionResource\Pages;
 use App\Models\Detection;
 use App\Models\DetectionCode;
+use App\Models\Region;
 use App\Models\User;
 use App\Support\AdminNavigation;
 use Filament\Forms;
@@ -92,6 +93,61 @@ class DetectionResource extends Resource
                         ->label('地址')
                         ->maxLength(255)
                         ->columnSpanFull(),
+                    Select::make('province_code')
+                        ->label('所在省份')
+                        ->searchable()
+                        ->native(false)
+                        ->options(fn () => Region::query()
+                            ->whereColumn('province_code', 'code')
+                            ->orderBy('code')
+                            ->pluck('name', 'code')
+                            ->toArray())
+                        ->required()
+                        ->reactive()
+                        ->afterStateUpdated(function (?string $state, Set $set) {
+                            $set('city_code', null);
+                            $set('district_code', null);
+                        }),
+                    Select::make('city_code')
+                        ->label('所在城市')
+                        ->searchable()
+                        ->native(false)
+                        ->options(function (callable $get) {
+                            $provinceCode = $get('province_code');
+                            if (!$provinceCode) {
+                                return [];
+                            }
+
+                            return Region::query()
+                                ->where('province_code', $provinceCode)
+                                ->whereColumn('city_code', 'code')
+                                ->orderBy('code')
+                                ->pluck('name', 'code')
+                                ->toArray();
+                        })
+                        ->required()
+                        ->reactive()
+                        ->afterStateUpdated(function (?string $state, Set $set) {
+                            $set('district_code', null);
+                        }),
+                    Select::make('district_code')
+                        ->label('所在区县')
+                        ->searchable()
+                        ->native(false)
+                        ->options(function (callable $get) {
+                            $cityCode = $get('city_code');
+                            if (!$cityCode) {
+                                return [];
+                            }
+
+                            return Region::query()
+                                ->where('city_code', $cityCode)
+                                ->where('code', '!=', $cityCode)
+                                ->orderBy('code')
+                                ->pluck('name', 'code')
+                                ->toArray();
+                        })
+                        ->required(),
                 ])->columns(2),
 
             Section::make('时间线')
@@ -225,6 +281,14 @@ class DetectionResource extends Resource
                     ->toggleable(),
                 TextColumn::make('sample_no')->label('样品编号')->searchable()->sortable(),
                 TextColumn::make('sample_type')->label('样品类型')->badge()->toggleable(),
+                TextColumn::make('province_code')
+                    ->label('省份')
+                    ->formatStateUsing(fn (?string $state) => self::resolveRegionName($state))
+                    ->toggleable(),
+                TextColumn::make('district_code')
+                    ->label('区县')
+                    ->formatStateUsing(fn (?string $state) => self::resolveRegionName($state))
+                    ->toggleable(),
                 TextColumn::make('sampled_at')->label('取样时间')->dateTime()->sortable(),
                 TextColumn::make('tested_at')->label('检测完成')->dateTime()->sortable(),
                 TextColumn::make('reported_at')->label('报告时间')->dateTime()->sortable(),
@@ -289,6 +353,22 @@ class DetectionResource extends Resource
                     'processing' => '检测中',
                     'completed' => '已完成',
                 ]),
+                SelectFilter::make('province_code')
+                    ->label('省份')
+                    ->options(fn () => Region::query()
+                        ->whereColumn('province_code', 'code')
+                        ->orderBy('code')
+                        ->pluck('name', 'code')
+                        ->toArray()),
+                SelectFilter::make('district_code')
+                    ->label('区县')
+                    ->options(fn () => Region::query()
+                        ->whereNotNull('city_code')
+                        ->whereColumn('city_code', '!=', 'code')
+                        ->orderBy('code')
+                        ->pluck('name', 'code')
+                        ->toArray())
+                    ->searchable(),
             ])
             ->actions([
                 \Filament\Actions\Action::make('view_survey')
@@ -348,4 +428,19 @@ class DetectionResource extends Resource
             'edit' => Pages\EditDetection::route('/{record}/edit'),
         ];
     }
+
+    private static function resolveRegionName(?string $code): string
+    {
+        if (!$code) {
+            return '—';
+        }
+
+        static $cache = [];
+        if (!array_key_exists($code, $cache)) {
+            $cache[$code] = Region::query()->where('code', $code)->value('name') ?? $code;
+        }
+
+        return $cache[$code];
+    }
 }
+use Filament\Schemas\Components\Utilities\Set;

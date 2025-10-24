@@ -34,6 +34,7 @@ class DatabaseSeeder extends Seeder
         $this->call([
             RegionsSeeder::class,
             DiseasesBootstrapSeeder::class,
+            EpidemicMapSampleSeeder::class,
         ]);
     }
 }

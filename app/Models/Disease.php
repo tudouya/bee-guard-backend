@@ -12,6 +12,9 @@ class Disease extends Model
     protected $fillable = [
         'code',
         'name',
+        'map_alias',
+        'map_color',
+        'map_order',
         'description',
         'brief',
         'symptom',
@@ -19,6 +22,10 @@ class Disease extends Model
         'prevention',
         'status',
         'sort',
+    ];
+
+    protected $casts = [
+        'map_order' => 'integer',
     ];
 
     public function products()
