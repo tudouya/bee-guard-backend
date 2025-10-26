@@ -104,6 +104,7 @@ class EpidemicMapService
                 return [
                     'code' => $disease->code,
                     'key' => Str::lower($disease->code),
+                    'label' => $disease->code,
                     'name' => $disease->map_alias ?: $disease->name,
                     'color' => $color,
                 ];
@@ -127,6 +128,7 @@ class EpidemicMapService
                 $meta = $legendByCode->get($entry->disease_code, [
                     'code' => $entry->disease_code,
                     'key' => Str::lower($entry->disease_code),
+                    'label' => $entry->disease_code,
                     'name' => $entry->disease_code,
                     'color' => '#888888',
                 ]);
@@ -134,6 +136,7 @@ class EpidemicMapService
                 return [
                     'diseaseCode' => $entry->disease_code,
                     'key' => $meta['key'] ?? Str::lower($entry->disease_code),
+                    'label' => $meta['label'] ?? $entry->disease_code,
                     'name' => $meta['name'] ?? $entry->disease_code,
                     'color' => $meta['color'] ?? '#888888',
                     'positive' => $entry->positive_cases,

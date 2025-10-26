@@ -111,12 +111,16 @@ class EpidemicMapTest extends TestCase
 
         $legend = $response->json('data.legend');
         $this->assertCount(2, $legend);
+        $legendByCode = collect($legend)->keyBy('code');
+        $this->assertSame('SBV', $legendByCode['SBV']['label']);
+        $this->assertSame('NOSEMA', $legendByCode['NOSEMA']['label']);
 
         $currentSlices = collect($response->json('data.groups.0.months.0.slices'))
             ->keyBy('diseaseCode');
         $this->assertSame(12, $currentSlices['SBV']['positive']);
         $this->assertSame(48, $currentSlices['SBV']['samples']);
         $this->assertSame('#F05A5A', $currentSlices['SBV']['color']);
+        $this->assertSame('SBV', $currentSlices['SBV']['label']);
         $this->assertArrayHasKey('rate', $currentSlices['SBV']);
 
         $monthTwo = collect($response->json('data.groups.0.months'))->firstWhere('monthValue', 2);

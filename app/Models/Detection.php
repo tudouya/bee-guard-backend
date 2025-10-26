@@ -63,8 +63,8 @@ class Detection extends Model
 
     public const SAMPLE_TYPE_OPTIONS = [
         'adult_bee' => '成蜂',
-        'capped_brood' => '封盖子脾',
-        'uncapped_brood' => '未封盖子脾',
+        'capped_brood' => '封盖子',
+        'uncapped_brood' => '未封盖子',
         'other' => '其他',
     ];
 

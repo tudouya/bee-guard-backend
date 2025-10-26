@@ -83,7 +83,8 @@ class RecommendationEngine
         };
 
         // Query active rules within window helper
-        $activeRulesQuery = fn () => RecommendationRule::query()
+        $activeRulesQuery = function (?int $limitedEnterpriseId = null) use ($now, $diseaseIds) {
+            return RecommendationRule::query()
             ->where('active', true)
             ->where(function ($q) use ($now) {
                 $q->whereNull('starts_at')->orWhere('starts_at', '<=', $now);
@@ -92,22 +93,25 @@ class RecommendationEngine
                 $q->whereNull('ends_at')->orWhere('ends_at', '>=', $now);
             })
             ->whereIn('disease_id', $diseaseIds)
-            ->whereHas('product', function ($q) {
-                $q->where('status', 'active');
+            ->whereHas('product', function ($q) use ($limitedEnterpriseId) {
+                $q->where('status', 'active')
+                  ->when($limitedEnterpriseId, fn ($qb) => $qb->where('enterprise_id', $limitedEnterpriseId));
             })
             ->with(['product' => fn ($query) => $query
+                ->when($limitedEnterpriseId, fn ($qb) => $qb->where('enterprise_id', $limitedEnterpriseId))
                 ->with([
                     'enterprise:id,name,contact_phone,contact_wechat,contact_link',
                     'homepageImages',
                 ])
             ]);
+        };
 
         // Applies_to filter based on source
         $applies = $source === 'gift' ? ['gift', 'any'] : ['self_paid', 'any'];
 
         if ($source === 'gift' && $enterpriseId) {
             // Enterprise + Global rules merged, ordered by tier then priority
-            $rules = (clone $activeRulesQuery)()
+            $rules = $activeRulesQuery($enterpriseId)
                 ->whereIn('applies_to', $applies)
                 ->where(function ($q) use ($enterpriseId) {
                     $q->where('scope_type', 'global')
@@ -141,27 +145,10 @@ class RecommendationEngine
             foreach ($q1->get() as $p) {
                 $pushProduct($p, 'platform');
             }
-
-            // 3.2 any enterprise products mapped to diseases, excluding already selected
-            $q2 = Product::query()
-                ->select('products.*')
-                ->join('disease_product', 'products.id', '=', 'disease_product.product_id')
-                ->whereIn('disease_product.disease_id', $diseaseIds)
-                ->where('products.status', 'active')
-                ->when(!empty($selectedProductIds), fn ($q) => $q->whereNotIn('products.id', $selectedProductIds))
-                ->with([
-                    'enterprise:id,name,contact_phone,contact_wechat,contact_link',
-                    'homepageImages',
-                ])
-                ->orderBy('disease_product.priority')
-                ->orderBy('products.id');
-            foreach ($q2->get() as $p) {
-                $pushProduct($p, 'platform');
-            }
         } else {
             // self_paid or missing enterprise -> global rules only, then generic mapping
             // 1) Global rules ordered by tier then priority
-            $rules = (clone $activeRulesQuery)()
+            $rules = $activeRulesQuery(null)
                 ->where('scope_type', 'global')
                 ->whereIn('applies_to', $applies)
                 ->orderBy('tier')
