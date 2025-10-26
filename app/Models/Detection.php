@@ -15,7 +15,7 @@ class Detection extends Model
         'detection_code_id',
         'sample_no',
         'contact_name',
-        'sample_type',
+        'sample_types',
         'address_text',
         'province_code',
         'city_code',
@@ -50,6 +50,7 @@ class Detection extends Model
         'province_code' => 'string',
         'city_code' => 'string',
         'district_code' => 'string',
+        'sample_types' => 'array',
         'questionnaire' => 'array',
         'pest_large_mite' => 'boolean',
         'pest_small_mite' => 'boolean',
@@ -59,6 +60,33 @@ class Detection extends Model
         'pest_scoliidae_wasp' => 'boolean',
         'pest_parasitic_bee_fly' => 'boolean',
     ];
+
+    public const SAMPLE_TYPE_OPTIONS = [
+        'adult_bee' => '成蜂',
+        'capped_brood' => '封盖子脾',
+        'uncapped_brood' => '未封盖子脾',
+        'other' => '其他',
+    ];
+
+    public static function sampleTypeOptions(): array
+    {
+        return self::SAMPLE_TYPE_OPTIONS;
+    }
+
+    public function getSampleTypeLabelsAttribute(): array
+    {
+        $codes = $this->sample_types ?? [];
+        if (!is_array($codes)) {
+            $codes = [];
+        }
+
+        $options = self::SAMPLE_TYPE_OPTIONS;
+
+        return array_values(array_filter(array_map(
+            fn (string $code) => $options[$code] ?? null,
+            $codes
+        )));
+    }
 
     public function user(): BelongsTo
     {

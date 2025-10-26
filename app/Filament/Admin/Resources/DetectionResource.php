@@ -9,6 +9,7 @@ use App\Models\Region;
 use App\Models\User;
 use App\Support\AdminNavigation;
 use Filament\Forms;
+use Filament\Forms\Components\CheckboxList;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
@@ -17,6 +18,7 @@ use Filament\Forms\Components\ToggleButtons;
 use Filament\Resources\Resource;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
+use Filament\Schemas\Components\Utilities\Set;
 use Filament\Tables;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Columns\TagsColumn;
@@ -79,16 +81,11 @@ class DetectionResource extends Resource
                     TextInput::make('contact_name')
                         ->label('姓名')
                         ->maxLength(191),
-                    Select::make('sample_type')
+                    CheckboxList::make('sample_types')
                         ->label('样品类型')
-                        ->options([
-                            'adult_bee' => '成蜂',
-                            'capped_brood' => '封盖子脾',
-                            'uncapped_brood' => '未封盖子脾',
-                            'other' => '其他',
-                        ])
-                        ->native(false)
-                        ->nullable(),
+                        ->options(Detection::sampleTypeOptions())
+                        ->columns(2)
+                        ->helperText('可多选；如选择“其他”请在备注说明具体类型。'),
                     TextInput::make('address_text')
                         ->label('地址')
                         ->maxLength(255)
@@ -280,7 +277,11 @@ class DetectionResource extends Resource
                     ->formatStateUsing(fn (?string $state): string => $state ?: '—')
                     ->toggleable(),
                 TextColumn::make('sample_no')->label('样品编号')->searchable()->sortable(),
-                TextColumn::make('sample_type')->label('样品类型')->badge()->toggleable(),
+                TagsColumn::make('sample_types')
+                    ->label('样品类型')
+                    ->getStateUsing(fn (Detection $record) => $record->sample_type_labels)
+                    ->limit(3)
+                    ->toggleable(),
                 TextColumn::make('province_code')
                     ->label('省份')
                     ->formatStateUsing(fn (?string $state) => self::resolveRegionName($state))
@@ -443,4 +444,3 @@ class DetectionResource extends Resource
         return $cache[$code];
     }
 }
-use Filament\Schemas\Components\Utilities\Set;
