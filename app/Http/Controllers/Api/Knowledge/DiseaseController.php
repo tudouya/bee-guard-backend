@@ -91,7 +91,10 @@ class DiseaseController extends Controller
             return response()->json(['code' => 404, 'message' => 'NOT_FOUND'], 404);
         }
 
-        $query = $d->knowledgeArticles()->published()->orderByDesc('published_at');
+        $query = $d->knowledgeArticles()
+            ->published()
+            ->orderBy('sort')
+            ->orderByDesc('published_at');
         $paginator = $query->paginate($perPage, ['*'], 'page', $page);
         $data = collect($paginator->items())->map(function ($a) {
             return [

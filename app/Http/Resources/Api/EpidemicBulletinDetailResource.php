@@ -12,6 +12,8 @@ class EpidemicBulletinDetailResource extends JsonResource
             'id' => $this->resource['id'] ?? null,
             'title' => $this->resource['title'] ?? null,
             'summary' => $this->resource['summary'] ?? null,
+            'thumbnailUrl' => $this->resource['thumbnail_url'] ?? null,
+            'homepageFeatured' => (bool) ($this->resource['homepage_featured'] ?? false),
             'content' => $this->resource['content'] ?? null,
             'riskLevel' => $this->resource['risk_level'] ?? null,
             'riskLevelText' => $this->resource['risk_level_text'] ?? '',

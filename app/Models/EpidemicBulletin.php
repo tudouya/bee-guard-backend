@@ -18,6 +18,8 @@ class EpidemicBulletin extends Model
         'status',
         'published_at',
         'source',
+        'thumbnail_url',
+        'homepage_featured',
         'attachments',
         'province_code',
         'city_code',
@@ -29,6 +31,7 @@ class EpidemicBulletin extends Model
     protected $casts = [
         'published_at' => 'datetime',
         'attachments' => 'array',
+        'homepage_featured' => 'boolean',
     ];
 
     public const STATUS_DRAFT = 'draft';

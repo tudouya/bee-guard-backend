@@ -47,6 +47,15 @@ class EpidemicBulletinResource extends Resource
                         Forms\Components\TextInput::make('source')
                             ->label('信息来源')
                             ->maxLength(150),
+                        Forms\Components\FileUpload::make('thumbnail_url')
+                            ->label('缩略图')
+                            ->image()
+                            ->disk('public')
+                            ->directory('epidemic-bulletins')
+                            ->imageEditor()
+                            ->maxSize(2048)
+                            ->helperText('用于展示列表的缩略图，建议 4:3 或 16:9 比例，最大 2MB。')
+                            ->columnSpanFull(),
                         Forms\Components\Select::make('risk_level')
                             ->label('风险等级')
                             ->options([
@@ -66,6 +75,10 @@ class EpidemicBulletinResource extends Resource
                             ->default(EpidemicBulletin::STATUS_DRAFT)
                             ->required()
                             ->native(false),
+                        Forms\Components\Toggle::make('homepage_featured')
+                            ->label('推荐到首页')
+                            ->helperText('开启后会在首页“疫情通报”区域优先展示。')
+                            ->inline(false),
                         Forms\Components\DatePicker::make('published_at')
                             ->label('发布时间')
                             ->displayFormat('Y-m-d')
@@ -190,6 +203,13 @@ class EpidemicBulletinResource extends Resource
                         return $state === EpidemicBulletin::STATUS_PUBLISHED ? '已发布' : '草稿';
                     })
                     ->sortable(),
+                Tables\Columns\IconColumn::make('homepage_featured')
+                    ->label('首页推荐')
+                    ->boolean()
+                    ->trueIcon('heroicon-o-star')
+                    ->falseIcon('heroicon-o-star')
+                    ->trueColor('warning')
+                    ->sortable(),
                 Tables\Columns\TextColumn::make('published_at')
                     ->label('发布时间')
                     ->dateTime('Y-m-d H:i')
@@ -213,6 +233,11 @@ class EpidemicBulletinResource extends Resource
                         EpidemicBulletin::STATUS_DRAFT => '草稿',
                         EpidemicBulletin::STATUS_PUBLISHED => '已发布',
                     ]),
+                Tables\Filters\TernaryFilter::make('homepage_featured')
+                    ->label('首页推荐')
+                    ->trueLabel('仅推荐到首页')
+                    ->falseLabel('仅未推荐')
+                    ->placeholder('全部'),
             ])
             ->actions([
                 EditAction::make(),

@@ -18,10 +18,14 @@ class KnowledgeArticle extends Model
         'published_at',
         'views',
         'created_by',
+        'sort',
+        'is_homepage_featured',
     ];
 
     protected $casts = [
         'published_at' => 'datetime',
+        'sort' => 'integer',
+        'is_homepage_featured' => 'boolean',
     ];
 
     public function disease()
@@ -52,4 +56,3 @@ class KnowledgeArticle extends Model
         $this->attributes['body_html'] = $clean;
     }
 }
-

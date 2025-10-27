@@ -29,6 +29,7 @@ Route::prefix('knowledge')->group(function () {
     Route::get('/diseases/{code}', [\App\Http\Controllers\Api\Knowledge\DiseaseController::class, 'show']);
     Route::get('/diseases/{code}/articles', [\App\Http\Controllers\Api\Knowledge\DiseaseController::class, 'articles']);
 
+    Route::get('/articles/featured', [\App\Http\Controllers\Api\Knowledge\ArticleController::class, 'featured']);
     Route::get('/articles/{id}', [\App\Http\Controllers\Api\Knowledge\ArticleController::class, 'show']);
     Route::post('/articles/{id}/exposure', [\App\Http\Controllers\Api\Knowledge\ArticleController::class, 'exposure']);
 });
@@ -45,6 +46,7 @@ Route::prefix('regions')->group(function () {
 });
 
 Route::prefix('epidemic')->group(function () {
+    Route::get('bulletins/featured', [EpidemicBulletinController::class, 'featured']);
     Route::get('bulletins', [EpidemicBulletinController::class, 'index']);
     Route::get('bulletins/{id}', [EpidemicBulletinController::class, 'show'])->whereNumber('id');
     Route::get('map/pie', [EpidemicMapController::class, 'pie']);

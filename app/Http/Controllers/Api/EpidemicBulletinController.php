@@ -7,6 +7,7 @@ use App\Http\Requests\Api\Epidemic\EpidemicBulletinListRequest;
 use App\Http\Resources\Api\EpidemicBulletinDetailResource;
 use App\Http\Resources\Api\EpidemicBulletinResource;
 use App\Services\Epidemic\EpidemicBulletinService;
+use Illuminate\Support\Carbon;
 use Illuminate\Http\JsonResponse;
 
 class EpidemicBulletinController extends Controller
@@ -54,5 +55,43 @@ class EpidemicBulletinController extends Controller
         return (new EpidemicBulletinDetailResource($transformed))
             ->additional(['success' => true])
             ->response();
+    }
+
+    public function featured(): JsonResponse
+    {
+        $bulletins = $this->service->latestHomepageFeatured(4);
+        $transformed = $this->service->transformBulletins($bulletins);
+
+        $data = $transformed->map(function (array $bulletin) {
+            return [
+                'id' => $bulletin['id'],
+                'title' => $bulletin['title'],
+                'summary' => $bulletin['summary'],
+                'thumbnailUrl' => $bulletin['thumbnail_url'],
+                'riskLevel' => $bulletin['risk_level'],
+                'riskLevelText' => $bulletin['risk_level_text'],
+                'publishedAt' => $this->formatDate($bulletin['published_at'] ?? null),
+                'region' => $bulletin['region'],
+            ];
+        })->values();
+
+        return response()->json([
+            'code' => 0,
+            'message' => 'ok',
+            'data' => $data,
+        ]);
+    }
+
+    private function formatDate($value): ?string
+    {
+        if ($value instanceof \DateTimeInterface) {
+            return Carbon::instance($value)->setTimezone('Asia/Shanghai')->format('Y-m-d');
+        }
+
+        if (is_string($value) && $value !== '') {
+            return Carbon::parse($value)->setTimezone('Asia/Shanghai')->format('Y-m-d');
+        }
+
+        return null;
     }
 }

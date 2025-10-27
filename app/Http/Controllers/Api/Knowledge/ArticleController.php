@@ -54,6 +54,36 @@ class ArticleController extends Controller
         ]);
     }
 
+    // GET /api/knowledge/articles/featured
+    public function featured(Request $request)
+    {
+        $articles = KnowledgeArticle::query()
+            ->with('disease')
+            ->published()
+            ->where('is_homepage_featured', true)
+            ->orderByDesc('published_at')
+            ->orderByDesc('id')
+            ->limit(4)
+            ->get()
+            ->map(function (KnowledgeArticle $article) {
+                return [
+                    'id' => $article->id,
+                    'title' => $article->title,
+                    'brief' => $article->brief,
+                    'date' => optional($article->published_at)->setTimezone('Asia/Shanghai')?->format('Y-m-d'),
+                    'views' => (int) $article->views,
+                    'diseaseCode' => optional($article->disease)->code,
+                ];
+            })
+            ->values();
+
+        return response()->json([
+            'code' => 0,
+            'message' => 'ok',
+            'data' => $articles,
+        ]);
+    }
+
     // POST /api/knowledge/articles/{id}/exposure
     public function exposure(Request $request, int $id)
     {
@@ -101,4 +131,3 @@ class ArticleController extends Controller
         ]);
     }
 }
-

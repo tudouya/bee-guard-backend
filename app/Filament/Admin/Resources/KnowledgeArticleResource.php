@@ -9,11 +9,13 @@ use App\Support\AdminNavigation;
 use Filament\Forms\Components\RichEditor;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\Toggle;
 use Filament\Resources\Resource;
 use Filament\Schemas\Components\Grid;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
 use Filament\Tables;
+use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
@@ -52,6 +54,15 @@ class KnowledgeArticleResource extends Resource
                         TextInput::make('brief')
                             ->label('摘要')
                             ->maxLength(300),
+                        TextInput::make('sort')
+                            ->label('排序值')
+                            ->numeric()
+                            ->default(0)
+                            ->required()
+                            ->minValue(0),
+                        Toggle::make('is_homepage_featured')
+                            ->label('推荐到首页')
+                            ->default(false),
                     ])
                     ->columns(1)
                     ->columnSpan(['default' => 1, 'xl' => 4]),
@@ -83,6 +94,11 @@ class KnowledgeArticleResource extends Resource
                 TextColumn::make('id')->label('ID')->sortable()->toggleable(),
                 TextColumn::make('title')->label('文章标题')->searchable()->sortable()->wrap(),
                 TextColumn::make('disease.name')->label('关联病种')->sortable()->searchable(),
+                TextColumn::make('sort')->label('排序值')->sortable(),
+                IconColumn::make('is_homepage_featured')
+                    ->label('首页推荐')
+                    ->boolean()
+                    ->sortable(),
                 TextColumn::make('published_at')->dateTime('Y-m-d')->label('发布时间')->sortable(),
                 TextColumn::make('views')->label('浏览量')->sortable(),
                 TextColumn::make('updated_at')->dateTime()->label('更新时间')->sortable(),

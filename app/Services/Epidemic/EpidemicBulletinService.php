@@ -7,6 +7,7 @@ use App\Repositories\RegionRepository;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Storage;
 
 class EpidemicBulletinService
 {
@@ -50,6 +51,19 @@ class EpidemicBulletinService
             ->find($id);
     }
 
+    public function latestHomepageFeatured(int $limit = 4): Collection
+    {
+        return EpidemicBulletin::query()
+            ->where('status', EpidemicBulletin::STATUS_PUBLISHED)
+            ->where('homepage_featured', true)
+            ->whereNotNull('published_at')
+            ->where('published_at', '<=', now())
+            ->orderByDesc('published_at')
+            ->orderByDesc('id')
+            ->limit($limit)
+            ->get();
+    }
+
     public function transformBulletins(Collection $collection): Collection
     {
         return $collection->map(function (EpidemicBulletin $bulletin) {
@@ -66,6 +80,8 @@ class EpidemicBulletinService
                 'content' => $bulletin->content,
                 'risk_level' => $bulletin->risk_level,
                 'risk_level_text' => $this->riskLevelText($bulletin->risk_level),
+                'thumbnail_url' => $this->resolveImageUrl($bulletin->thumbnail_url),
+                'homepage_featured' => (bool) $bulletin->homepage_featured,
                 'region' => [
                     'provinceCode' => $bulletin->province_code,
                     'provinceName' => $region['province'],
@@ -88,5 +104,28 @@ class EpidemicBulletinService
             EpidemicBulletin::RISK_MEDIUM => '中风险',
             default => '低风险',
         };
+    }
+
+    private function resolveImageUrl(?string $value): ?string
+    {
+        if (blank($value)) {
+            return null;
+        }
+
+        if (preg_match('/^https?:\/\//i', $value)) {
+            return $value;
+        }
+
+        $disk = config('filament.default_filesystem_disk') ?: config('filesystems.default', 'public');
+
+        try {
+            return Storage::disk($disk)->url($value);
+        } catch (\Throwable $e) {
+            try {
+                return Storage::disk('public')->url($value);
+            } catch (\Throwable $e2) {
+                return null;
+            }
+        }
     }
 }
