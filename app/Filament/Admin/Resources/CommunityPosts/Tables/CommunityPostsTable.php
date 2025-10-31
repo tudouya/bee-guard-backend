@@ -44,8 +44,8 @@ class CommunityPostsTable
                 TextColumn::make('likes')->label('点赞')->numeric()->sortable(),
                 TextColumn::make('replies_count')->label('回复数')->numeric()->sortable(),
                 TextColumn::make('views')->label('浏览')->numeric()->sortable()->toggleable(isToggledHiddenByDefault: true),
-                TextColumn::make('published_at')->label('发布时间')->dateTime()->sortable(),
-                TextColumn::make('created_at')->label('创建时间')->dateTime()->sortable()->toggleable(isToggledHiddenByDefault: true),
+                TextColumn::make('published_at')->label('发布时间')->date('Y-m-d')->sortable(),
+                TextColumn::make('created_at')->label('创建时间')->date('Y-m-d')->sortable()->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
                 SelectFilter::make('type')->options([

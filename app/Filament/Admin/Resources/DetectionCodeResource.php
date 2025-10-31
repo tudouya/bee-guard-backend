@@ -171,8 +171,16 @@ class DetectionCodeResource extends Resource
                 ]),
                 // Row 2: Timestamps in two columns
                 Grid::make(['default' => 1, 'md' => 2])->schema([
-                    DatePicker::make('assigned_at')->label('分配时间')->native(false),
-                    DatePicker::make('used_at')->label('使用时间')->native(false),
+                    DatePicker::make('assigned_at')
+                        ->label('分配时间')
+                        ->native(false)
+                        ->displayFormat('Y-m-d')
+                        ->format('Y-m-d'),
+                    DatePicker::make('used_at')
+                        ->label('使用时间')
+                        ->native(false)
+                        ->displayFormat('Y-m-d')
+                        ->format('Y-m-d'),
                 ]),
             ]),
         ]);
@@ -219,15 +227,15 @@ class DetectionCodeResource extends Resource
                     ->toggleable(),
                 TextColumn::make('assigned_at')
                     ->label('分配时间')
-                    ->date()
+                    ->date('Y-m-d')
                     ->sortable(),
                 TextColumn::make('used_at')
                     ->label('使用时间')
-                    ->date()
+                    ->date('Y-m-d')
                     ->sortable(),
                 TextColumn::make('created_at')
                     ->label('创建时间')
-                    ->date()
+                    ->date('Y-m-d')
                     ->sortable(),
             ])
             ->filters([

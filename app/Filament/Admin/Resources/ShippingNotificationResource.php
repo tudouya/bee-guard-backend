@@ -39,8 +39,8 @@ class ShippingNotificationResource extends Resource
             ->defaultSort('created_at', 'desc')
             ->columns([
                 TextColumn::make('id')->label('ID')->sortable()->toggleable(),
-                TextColumn::make('created_at')->label('提交时间')->dateTime()->sortable(),
-                TextColumn::make('shipped_at')->label('寄出日期')->date()->sortable(),
+                TextColumn::make('created_at')->label('提交时间')->date('Y-m-d')->sortable(),
+                TextColumn::make('shipped_at')->label('寄出日期')->date('Y-m-d')->sortable(),
 
                 TextColumn::make('courier_company')->label('快递公司')->sortable()->searchable(),
                 TextColumn::make('tracking_no')->label('快递单号')->sortable()->searchable(),
@@ -97,7 +97,7 @@ class ShippingNotificationResource extends Resource
                 ->columns(4)
                 ->schema([
                     Text::make('创建时间')->color('gray')->weight('medium')->columnSpan(1),
-                    Text::make(fn (ShippingNotification $record) => optional($record->created_at)?->format('Y-m-d H:i') ?: '—')->columnSpan(1),
+                    Text::make(fn (ShippingNotification $record) => optional($record->created_at)?->format('Y-m-d') ?: '—')->columnSpan(1),
 
                     Text::make('寄出日期')->color('gray')->weight('medium')->columnSpan(1),
                     Text::make(fn (ShippingNotification $record) => optional($record->shipped_at)?->format('Y-m-d') ?: '—')->columnSpan(1),

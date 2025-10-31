@@ -127,8 +127,16 @@ class RecommendationRuleResource extends Resource
                         ->label('启用规则')
                         ->default(true),
                     Grid::make(2)->schema([
-                        DatePicker::make('starts_at')->label('开始时间')->native(false),
-                        DatePicker::make('ends_at')->label('结束时间')->native(false),
+                    DatePicker::make('starts_at')
+                        ->label('开始时间')
+                        ->native(false)
+                        ->displayFormat('Y-m-d')
+                        ->format('Y-m-d'),
+                    DatePicker::make('ends_at')
+                        ->label('结束时间')
+                        ->native(false)
+                        ->displayFormat('Y-m-d')
+                        ->format('Y-m-d'),
                     ]),
                 ]),
             // 使用说明：为避免组件兼容性问题，这里用简要占位说明，详细说明见列表页「规则说明」按钮
@@ -176,8 +184,8 @@ class RecommendationRuleResource extends Resource
                     ->label('启用状态')
                     ->badge()
                     ->formatStateUsing(fn ($state) => $state ? '启用中' : '已停用'),
-                TextColumn::make('starts_at')->label('开始时间')->date()->sortable(),
-                TextColumn::make('ends_at')->label('结束时间')->date()->sortable(),
+                TextColumn::make('starts_at')->label('开始时间')->date('Y-m-d')->sortable(),
+                TextColumn::make('ends_at')->label('结束时间')->date('Y-m-d')->sortable(),
             ])
             ->filters([
                 SelectFilter::make('scope_type')->label('适用范围')->options([

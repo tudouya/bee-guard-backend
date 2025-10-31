@@ -195,13 +195,13 @@ class CommunityPostInfolist
                             ->columnSpan(3),
 
                         Text::make('创建时间')->color('gray')->weight('medium')->columnSpan(1),
-                        Text::make(fn (CommunityPost $record) => optional($record->created_at)?->format('Y-m-d H:i') ?: '—')->columnSpan(1),
+                        Text::make(fn (CommunityPost $record) => optional($record->created_at)?->format('Y-m-d') ?: '—')->columnSpan(1),
 
                         Text::make('发布时间')->color('gray')->weight('medium')->columnSpan(1),
-                        Text::make(fn (CommunityPost $record) => optional($record->published_at)?->format('Y-m-d H:i') ?: '—')->columnSpan(1),
+                        Text::make(fn (CommunityPost $record) => optional($record->published_at)?->format('Y-m-d') ?: '—')->columnSpan(1),
 
                         Text::make('最后更新')->color('gray')->weight('medium')->columnSpan(1),
-                        Text::make(fn (CommunityPost $record) => optional($record->updated_at)?->format('Y-m-d H:i') ?: '—')->columnSpan(3),
+                        Text::make(fn (CommunityPost $record) => optional($record->updated_at)?->format('Y-m-d') ?: '—')->columnSpan(3),
                     ]),
 
                 Section::make('互动数据')
@@ -226,7 +226,7 @@ class CommunityPostInfolist
                         Text::make(fn (CommunityPost $record) => $record->reviewer?->display_name ?: '—')->columnSpan(3),
 
                         Text::make('审核时间')->color('gray')->weight('medium')->columnSpan(1),
-                        Text::make(fn (CommunityPost $record) => optional($record->reviewed_at)?->format('Y-m-d H:i') ?: '—')->columnSpan(3),
+                        Text::make(fn (CommunityPost $record) => optional($record->reviewed_at)?->format('Y-m-d') ?: '—')->columnSpan(3),
 
                         Text::make('驳回原因')->color('gray')->weight('medium')->columnSpan(1)
                             ->visible(fn (CommunityPost $record) => filled($record->reject_reason)),

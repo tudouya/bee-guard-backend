@@ -88,7 +88,7 @@ class RewardIssuanceResource extends Resource
                         ->content(fn (RewardIssuance $record) => $record->face_value ? number_format((float) $record->face_value, 2) . ' 元' : '—'),
                     Placeholder::make('expires_at')
                         ->label('到期时间')
-                        ->content(fn (RewardIssuance $record) => $record->expires_at?->format('Y-m-d H:i') ?? '—'),
+                        ->content(fn (RewardIssuance $record) => $record->expires_at?->format('Y-m-d') ?? '—'),
                 ])->columns([
                     'default' => 1,
                     'md' => 2,
@@ -108,7 +108,7 @@ class RewardIssuanceResource extends Resource
                         ->content(fn (RewardIssuance $record) => $record->issuer?->display_name ?? ($record->issued_by ? ('用户 #' . $record->issued_by) : '系统自动')),
                     Placeholder::make('issued_at')
                         ->label('发放时间')
-                        ->content(fn (RewardIssuance $record) => $record->issued_at?->format('Y-m-d H:i') ?? '—'),
+                        ->content(fn (RewardIssuance $record) => $record->issued_at?->format('Y-m-d') ?? '—'),
                     Placeholder::make('audit_log')
                         ->label('审计日志')
                         ->content(fn (RewardIssuance $record) => collect($record->audit_log ?? [])->map(function ($item) {
@@ -158,11 +158,11 @@ class RewardIssuanceResource extends Resource
                     ->toggleable(),
                 TextColumn::make('issued_at')
                     ->label('发放时间')
-                    ->dateTime()
+                    ->date('Y-m-d')
                     ->sortable(),
                 TextColumn::make('expires_at')
                     ->label('到期时间')
-                    ->dateTime()
+                    ->date('Y-m-d')
                     ->toggleable(),
             ])
             ->filters([

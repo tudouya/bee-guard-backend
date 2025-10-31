@@ -118,7 +118,7 @@ class DiseaseResource extends Resource
                     ->sortable(),
                 TextColumn::make('sort')->label('排序值')->sortable(),
                 TextColumn::make('map_order')->label('地图排序')->sortable()->toggleable(),
-                TextColumn::make('updated_at')->dateTime()->label('更新时间')->sortable(),
+                TextColumn::make('updated_at')->date('Y-m-d')->label('更新时间')->sortable(),
             ])
             ->filters([])
             ->actions([

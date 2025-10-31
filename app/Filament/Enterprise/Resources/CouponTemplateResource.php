@@ -106,13 +106,13 @@ class CouponTemplateResource extends Resource
                     }),
                 TextColumn::make('valid_from')
                     ->label('生效日期')
-                    ->date(),
+                    ->date('Y-m-d'),
                 TextColumn::make('valid_until')
                     ->label('截止日期')
-                    ->date(),
+                    ->date('Y-m-d'),
                 TextColumn::make('updated_at')
                     ->label('更新时间')
-                    ->since()
+                    ->date('Y-m-d')
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([

@@ -101,7 +101,7 @@ class KnowledgeArticleResource extends Resource
                     ->sortable(),
                 TextColumn::make('published_at')->dateTime('Y-m-d')->label('发布时间')->sortable(),
                 TextColumn::make('views')->label('浏览量')->sortable(),
-                TextColumn::make('updated_at')->dateTime()->label('更新时间')->sortable(),
+                TextColumn::make('updated_at')->date('Y-m-d')->label('更新时间')->sortable(),
             ])
             ->filters([
                 Tables\Filters\SelectFilter::make('disease_id')->label('关联病种')

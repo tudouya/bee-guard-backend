@@ -137,7 +137,7 @@ class RewardRuleResource extends Resource
                             ->content(fn (?RewardRule $record) => optional($record?->createdBy)->display_name ?? '保存后显示'),
                         Placeholder::make('updated_at_display')
                             ->label('最近更新')
-                            ->content(fn (?RewardRule $record) => $record?->updated_at?->format('Y-m-d H:i') ?? '保存后显示'),
+                            ->content(fn (?RewardRule $record) => $record?->updated_at?->format('Y-m-d') ?? '保存后显示'),
                     ])->columnSpanFull(),
                 ]),
         ]);
@@ -179,7 +179,7 @@ class RewardRuleResource extends Resource
                     }),
                 TextColumn::make('updated_at')
                     ->label('更新于')
-                    ->since()
+                    ->date('Y-m-d')
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([

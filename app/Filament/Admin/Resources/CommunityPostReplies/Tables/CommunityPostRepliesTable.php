@@ -39,8 +39,8 @@ class CommunityPostRepliesTable
                     'heroicon-o-x-circle' => 'rejected',
                 ]),
                 TextColumn::make('content')->label('内容')->limit(40)->searchable(),
-                TextColumn::make('published_at')->label('发布时间')->dateTime()->sortable(),
-                TextColumn::make('created_at')->label('创建时间')->dateTime()->sortable()->toggleable(isToggledHiddenByDefault: true),
+                TextColumn::make('published_at')->label('发布时间')->date('Y-m-d')->sortable(),
+                TextColumn::make('created_at')->label('创建时间')->date('Y-m-d')->sortable()->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
                 SelectFilter::make('status')->options([

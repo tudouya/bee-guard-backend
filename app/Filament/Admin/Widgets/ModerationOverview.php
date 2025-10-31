@@ -41,7 +41,7 @@ class ModerationOverview extends StatsOverviewWidget
 
         return [
             Stat::make('待审核帖子', $pendingPosts)
-                ->description(sprintf('更新于 %s · 24h 新增 %d 条', $now->format('Y-m-d H:i'), $newPosts))
+                ->description(sprintf('更新于 %s · 24h 新增 %d 条', $now->format('Y-m-d'), $newPosts))
                 ->descriptionIcon('heroicon-o-arrow-trending-up')
                 ->color($pendingPosts > 0 ? 'warning' : 'success')
                 ->url($postUrl)
@@ -49,7 +49,7 @@ class ModerationOverview extends StatsOverviewWidget
                     'class' => 'cursor-pointer',
                 ]),
             Stat::make('待审核回复', $pendingReplies)
-                ->description(sprintf('更新于 %s · 24h 新增 %d 条', $now->format('Y-m-d H:i'), $newReplies))
+                ->description(sprintf('更新于 %s · 24h 新增 %d 条', $now->format('Y-m-d'), $newReplies))
                 ->descriptionIcon('heroicon-o-arrow-trending-up')
                 ->color($pendingReplies > 0 ? 'warning' : 'success')
                 ->url($replyUrl)

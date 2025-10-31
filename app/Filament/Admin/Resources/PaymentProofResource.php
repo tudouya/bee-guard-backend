@@ -52,7 +52,7 @@ class PaymentProofResource extends Resource
                         default => $state,
                     })
                     ->sortable(),
-                TextColumn::make('created_at')->label('提交时间')->dateTime()->sortable(),
+                TextColumn::make('created_at')->label('提交时间')->date('Y-m-d')->sortable(),
             ])
             ->filters([
                 SelectFilter::make('status')->label('状态')->options([

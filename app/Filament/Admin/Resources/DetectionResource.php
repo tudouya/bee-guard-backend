@@ -149,10 +149,26 @@ class DetectionResource extends Resource
 
             Section::make('时间线')
                 ->schema([
-                    DatePicker::make('sampled_at')->label('取样时间')->native(false),
-                    DatePicker::make('tested_at')->label('检测完成时间')->native(false),
-                    DatePicker::make('reported_at')->label('报告时间')->native(false),
-                    DatePicker::make('submitted_at')->label('提交时间')->native(false),
+                    DatePicker::make('sampled_at')
+                        ->label('取样时间')
+                        ->native(false)
+                        ->displayFormat('Y-m-d')
+                        ->format('Y-m-d'),
+                    DatePicker::make('tested_at')
+                        ->label('检测完成时间')
+                        ->native(false)
+                        ->displayFormat('Y-m-d')
+                        ->format('Y-m-d'),
+                    DatePicker::make('reported_at')
+                        ->label('报告时间')
+                        ->native(false)
+                        ->displayFormat('Y-m-d')
+                        ->format('Y-m-d'),
+                    DatePicker::make('submitted_at')
+                        ->label('提交时间')
+                        ->native(false)
+                        ->displayFormat('Y-m-d')
+                        ->format('Y-m-d'),
                 ])->columns(2),
 
             Section::make('报告与状态')
@@ -290,9 +306,9 @@ class DetectionResource extends Resource
                     ->label('区县')
                     ->formatStateUsing(fn (?string $state) => self::resolveRegionName($state))
                     ->toggleable(),
-                TextColumn::make('sampled_at')->label('取样时间')->dateTime()->sortable(),
-                TextColumn::make('tested_at')->label('检测完成')->dateTime()->sortable(),
-                TextColumn::make('reported_at')->label('报告时间')->dateTime()->sortable(),
+                TextColumn::make('sampled_at')->label('取样时间')->date('Y-m-d')->sortable(),
+                TextColumn::make('tested_at')->label('检测完成')->date('Y-m-d')->sortable(),
+                TextColumn::make('reported_at')->label('报告时间')->date('Y-m-d')->sortable(),
                 TextColumn::make('status')->label('状态')->badge()->sortable(),
                 TextColumn::make('positive_count')
                     ->label('阳性数')
@@ -337,7 +353,7 @@ class DetectionResource extends Resource
                         return $tags;
                     })
                     ->limit(6),
-                TextColumn::make('created_at')->dateTime()->sortable(),
+                TextColumn::make('created_at')->date('Y-m-d')->sortable(),
             ])
             ->filters([
                 \Filament\Tables\Filters\Filter::make('missing_sample_no')

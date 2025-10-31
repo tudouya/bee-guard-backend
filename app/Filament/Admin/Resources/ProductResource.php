@@ -335,7 +335,7 @@ class ProductResource extends Resource
                         default => $state,
                     })
                     ->sortable(),
-                TextColumn::make('created_at')->label('创建时间')->dateTime()->sortable(),
+                TextColumn::make('created_at')->label('创建时间')->date('Y-m-d')->sortable(),
             ])
             ->filters([
                 Tables\Filters\SelectFilter::make('enterprise_id')

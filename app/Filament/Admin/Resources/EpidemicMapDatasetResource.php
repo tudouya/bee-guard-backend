@@ -99,6 +99,8 @@ class EpidemicMapDatasetResource extends Resource
                     DatePicker::make('data_updated_at')
                         ->label('数据更新时间')
                         ->native(false)
+                        ->displayFormat('Y-m-d')
+                        ->format('Y-m-d')
                         ->helperText('默认保存时自动填写当前日期，可手动调整。'),
                     TextInput::make('source')
                         ->label('数据来源')
@@ -231,11 +233,11 @@ class EpidemicMapDatasetResource extends Resource
                     ->sortable(),
                 TextColumn::make('data_updated_at')
                     ->label('数据时间')
-                    ->dateTime('Y-m-d H:i')
+                    ->date('Y-m-d')
                     ->sortable(),
                 TextColumn::make('updated_at')
                     ->label('更新时间')
-                    ->since()
+                    ->date('Y-m-d')
                     ->toggleable(),
             ])
             ->filters([

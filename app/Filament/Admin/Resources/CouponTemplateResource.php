@@ -91,10 +91,14 @@ class CouponTemplateResource extends Resource
                     DatePicker::make('valid_from')
                         ->label('有效期开始')
                         ->native(false)
+                        ->displayFormat('Y-m-d')
+                        ->format('Y-m-d')
                         ->disabled(),
                     DatePicker::make('valid_until')
                         ->label('有效期结束')
                         ->native(false)
+                        ->displayFormat('Y-m-d')
+                        ->format('Y-m-d')
                         ->disabled(),
                     Placeholder::make('status_label')
                         ->label('状态')
@@ -129,7 +133,7 @@ class CouponTemplateResource extends Resource
                         ->content(fn (CouponTemplate $record) => optional($record->reviewer)->display_name ?? '-'),
                     Placeholder::make('reviewed_at')
                         ->label('审核时间')
-                        ->content(fn (CouponTemplate $record) => optional($record->reviewed_at)?->format('Y-m-d H:i') ?? '-'),
+                        ->content(fn (CouponTemplate $record) => optional($record->reviewed_at)?->format('Y-m-d') ?? '-'),
                 ])->columns([
                     'default' => 1,
                     'md' => 3,
@@ -168,11 +172,11 @@ class CouponTemplateResource extends Resource
                     }),
                 TextColumn::make('valid_until')
                     ->label('有效期结束')
-                    ->date()
+                    ->date('Y-m-d')
                     ->sortable(),
                 TextColumn::make('updated_at')
                     ->label('最后更新')
-                    ->since()
+                    ->date('Y-m-d')
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([

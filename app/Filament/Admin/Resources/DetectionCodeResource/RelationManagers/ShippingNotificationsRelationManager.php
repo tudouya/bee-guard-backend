@@ -20,8 +20,8 @@ class ShippingNotificationsRelationManager extends RelationManager
             ->defaultSort('created_at', 'desc')
             ->columns([
                 TextColumn::make('id')->sortable(),
-                TextColumn::make('created_at')->dateTime()->sortable(),
-                TextColumn::make('shipped_at')->date()->sortable(),
+                TextColumn::make('created_at')->date('Y-m-d')->sortable(),
+                TextColumn::make('shipped_at')->date('Y-m-d')->sortable(),
                 TextColumn::make('courier_company')->label('Courier')->searchable()->sortable(),
                 TextColumn::make('tracking_no')->label('Tracking No.')->searchable()->sortable(),
                 TextColumn::make('user.display_name')->label('User'),
@@ -31,4 +31,3 @@ class ShippingNotificationsRelationManager extends RelationManager
             ->bulkActions([]);
     }
 }
-

@@ -122,11 +122,15 @@ class CouponTemplateForm
             DatePicker::make('valid_from')
                 ->label('有效期开始')
                 ->required()
-                ->native(false),
+                ->native(false)
+                ->displayFormat('Y-m-d')
+                ->format('Y-m-d'),
             DatePicker::make('valid_until')
                 ->label('有效期结束')
                 ->required()
                 ->native(false)
+                ->displayFormat('Y-m-d')
+                ->format('Y-m-d')
                 ->afterOrEqual('valid_from'),
             Textarea::make('usage_instructions')
                 ->label('使用说明')

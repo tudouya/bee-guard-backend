@@ -53,10 +53,10 @@ class OrderResource extends Resource
                         default => $state,
                     })
                     ->sortable(),
-                TextColumn::make('paid_at')->label('支付时间')->dateTime()->sortable(),
+                TextColumn::make('paid_at')->label('支付时间')->date('Y-m-d')->sortable(),
                 TextColumn::make('detectionCode.prefix')->label('检测号前缀')->toggleable(),
                 TextColumn::make('detectionCode.code')->label('检测号')->toggleable(),
-                TextColumn::make('created_at')->label('创建时间')->dateTime()->sortable(),
+                TextColumn::make('created_at')->label('创建时间')->date('Y-m-d')->sortable(),
             ])
             ->filters([
                 SelectFilter::make('status')->label('状态')->options([

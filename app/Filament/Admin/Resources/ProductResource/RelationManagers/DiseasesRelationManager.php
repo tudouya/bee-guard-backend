@@ -31,7 +31,7 @@ class DiseasesRelationManager extends RelationManager
                 TextColumn::make('name')->searchable()->sortable(),
                 TextColumn::make('pivot.priority')->label('Priority')->sortable(),
                 TextColumn::make('pivot.note')->label('Note')->wrap(),
-                TextColumn::make('updated_at')->dateTime()->label('Updated')->sortable(),
+                TextColumn::make('updated_at')->date('Y-m-d')->label('Updated')->sortable(),
             ])
             ->headerActions([
                 \Filament\Actions\AttachAction::make()

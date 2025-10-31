@@ -38,7 +38,7 @@ class SurveyResource extends Resource
             ->defaultSort('submitted_at', 'desc')
             ->columns([
                 TextColumn::make('id')->label('ID')->sortable()->toggleable(),
-                TextColumn::make('submitted_at')->label('提交时间')->dateTime()->sortable(),
+                TextColumn::make('submitted_at')->label('提交时间')->date('Y-m-d')->sortable(),
                 BadgeColumn::make('status')
                     ->label('状态')
                     ->colors([
@@ -120,7 +120,7 @@ class SurveyResource extends Resource
                 ->columns(4)
                 ->schema([
                     Text::make('提交时间')->color('gray')->weight('medium')->columnSpan(1),
-                    Text::make(fn (Survey $record) => optional($record->submitted_at)?->format('Y-m-d H:i') ?: '—')->columnSpan(1),
+                    Text::make(fn (Survey $record) => optional($record->submitted_at)?->format('Y-m-d') ?: '—')->columnSpan(1),
 
                     Text::make('状态')->color('gray')->weight('medium')->columnSpan(1),
                     Text::make(fn (Survey $record) => $record->status)
@@ -164,7 +164,17 @@ class SurveyResource extends Resource
                     Text::make(fn (Survey $record) => optional($record->fill_date)?->format('Y-m-d') ?: '—')->columnSpan(1),
 
                     Text::make('填写时间')->color('gray')->weight('medium')->columnSpan(1),
-                    Text::make(fn (Survey $record) => optional($record->fill_time)?->format('H:i') ?: '—')->columnSpan(1),
+                    Text::make(function (Survey $record) {
+                        if ($record->fill_date && $record->fill_time) {
+                            return $record->fill_date->format('Y-m-d');
+                        }
+
+                        if ($record->fill_date) {
+                            return $record->fill_date->format('Y-m-d');
+                        }
+
+                        return optional($record->fill_time)?->format('Y-m-d') ?: '—';
+                    })->columnSpan(1),
                 ]),
 
             Section::make('场地与联系方式')

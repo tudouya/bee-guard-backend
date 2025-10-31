@@ -105,17 +105,18 @@ class CommunityPostReplyInfolist
                         Text::make('作者')->color('gray')->weight('medium')->columnSpan(1),
                         Text::make(fn (CommunityPostReply $record) => $record->author?->display_name ?: '—')->columnSpan(1),
 
+
                         Text::make('发布时间')->color('gray')->weight('medium')->columnSpan(1),
-                        Text::make(fn (CommunityPostReply $record) => optional($record->published_at)?->format('Y-m-d H:i') ?: '—')->columnSpan(1),
+                        Text::make(fn (CommunityPostReply $record) => optional($record->published_at)?->format('Y-m-d') ?: '—')->columnSpan(1),
 
                         Text::make('创建时间')->color('gray')->weight('medium')->columnSpan(1),
-                        Text::make(fn (CommunityPostReply $record) => optional($record->created_at)?->format('Y-m-d H:i') ?: '—')->columnSpan(1),
+                        Text::make(fn (CommunityPostReply $record) => optional($record->created_at)?->format('Y-m-d') ?: '—')->columnSpan(1),
 
                         Text::make('审核人')->color('gray')->weight('medium')->columnSpan(1),
                         Text::make(fn (CommunityPostReply $record) => $record->reviewer?->display_name ?: '—')->columnSpan(1),
 
                         Text::make('审核时间')->color('gray')->weight('medium')->columnSpan(1),
-                        Text::make(fn (CommunityPostReply $record) => optional($record->reviewed_at)?->format('Y-m-d H:i') ?: '—')->columnSpan(1),
+                        Text::make(fn (CommunityPostReply $record) => optional($record->reviewed_at)?->format('Y-m-d') ?: '—')->columnSpan(1),
                     ]),
 
                 Section::make('回复内容')

@@ -49,9 +49,9 @@ class DetectionCodeResource extends Resource
                     })
                     ->sortable(),
                 TextColumn::make('assignedUser.display_name')->label('绑定用户')->toggleable(),
-                TextColumn::make('assigned_at')->label('分配时间')->dateTime()->sortable(),
-                TextColumn::make('used_at')->label('使用时间')->dateTime()->sortable(),
-                TextColumn::make('created_at')->label('创建时间')->dateTime()->sortable(),
+                TextColumn::make('assigned_at')->label('分配时间')->date('Y-m-d')->sortable(),
+                TextColumn::make('used_at')->label('使用时间')->date('Y-m-d')->sortable(),
+                TextColumn::make('created_at')->label('创建时间')->date('Y-m-d')->sortable(),
             ])
             ->filters([
                 SelectFilter::make('status')->label('状态')->options([

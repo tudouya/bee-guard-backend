@@ -317,11 +317,11 @@ class EpidemicBulletinResource extends Resource
                     ->sortable(),
                 Tables\Columns\TextColumn::make('published_at')
                     ->label('发布时间')
-                    ->dateTime('Y-m-d H:i')
+                    ->date('Y-m-d')
                     ->sortable(),
                 Tables\Columns\TextColumn::make('updated_at')
                     ->label('更新时间')
-                    ->since()
+                    ->date('Y-m-d')
                     ->toggleable(),
             ])
             ->filters([
