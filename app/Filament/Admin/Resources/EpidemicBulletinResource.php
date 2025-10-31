@@ -6,6 +6,8 @@ use App\Filament\Admin\Resources\EpidemicBulletinResource\Pages;
 use App\Models\EpidemicBulletin;
 use App\Models\Region;
 use Filament\Forms;
+use Filament\Forms\Components\BaseFileUpload;
+use Filament\Actions\Action;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
 use BackedEnum;
@@ -17,6 +19,8 @@ use Filament\Actions\EditAction;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 
 class EpidemicBulletinResource extends Resource
 {
@@ -50,8 +54,109 @@ class EpidemicBulletinResource extends Resource
                         Forms\Components\FileUpload::make('thumbnail_url')
                             ->label('缩略图')
                             ->image()
-                            ->disk('public')
+                            ->disk('s3')
                             ->directory('epidemic-bulletins')
+                            ->fetchFileInformation(false)
+                            ->getUploadedFileUsing(function (BaseFileUpload $component, string $file, string | array | null $storedFileNames): ?array {
+                                $file = trim($file);
+
+                                if ($file === '' || Str::startsWith($file, ['livewire-file:', 'livewire-files:'])) {
+                                    return null;
+                                }
+
+                                if (Str::startsWith($file, ['http://', 'https://'])) {
+                                    $name = ($component->isMultiple() ? ($storedFileNames[$file] ?? null) : $storedFileNames) ?? basename(parse_url($file, PHP_URL_PATH) ?: $file);
+
+                                    return [
+                                        'name' => $name,
+                                        'size' => null,
+                                        'type' => null,
+                                        'url' => $file,
+                                    ];
+                                }
+
+                                $url = static::resolveStoredFileUrl($component, $file);
+                                if ($url === null) {
+                                    return null;
+                                }
+
+                                $name = ($component->isMultiple() ? ($storedFileNames[$file] ?? null) : $storedFileNames) ?? basename($file);
+
+                                return [
+                                    'name' => $name,
+                                    'size' => null,
+                                    'type' => null,
+                                    'url' => $url,
+                                ];
+                            })
+                            ->hintAction(fn (Forms\Components\FileUpload $component) => Action::make('clearThumbnail')
+                                ->label('移除缩略图')
+                                ->icon('heroicon-o-trash')
+                                ->color('danger')
+                                ->requiresConfirmation()
+                                ->visible(fn (): bool => filled($component->getState()))
+                                ->action(function () use ($component): void {
+                                    $state = $component->getState();
+
+                                    if ($component->isMultiple() || blank($state)) {
+                                        $component->state(null);
+                                        $component->callAfterStateUpdated();
+
+                                        return;
+                                    }
+
+                                    $file = trim((string) $state);
+
+                                    if ($file === '' || Str::startsWith($file, ['http://', 'https://'])) {
+                                        $component->state(null);
+                                        $component->callAfterStateUpdated();
+
+                                        return;
+                                    }
+
+                                    static::deleteStoredFile($component, $file);
+
+                                    $component->state(null);
+                                    $component->callAfterStateUpdated();
+                                }))
+                            ->afterStateHydrated(function (Forms\Components\FileUpload $component, $state) {
+                                if (blank($state)) {
+                                    $component->state(null);
+
+                                    return;
+                                }
+
+                                $files = is_array($state) ? $state : [$state];
+
+                                $normalized = collect($files)
+                                    ->map(function ($value) use ($component) {
+                                        $file = trim((string) $value);
+
+                                        if ($file === '' || Str::startsWith($file, ['http://', 'https://'])) {
+                                            return $file;
+                                        }
+
+                                        return static::resolveStoredFileUrl($component, $file) ? $file : null;
+                                    })
+                                    ->filter()
+                                    ->values()
+                                    ->all();
+
+                                if (empty($normalized)) {
+                                    $component->state(null);
+
+                                    return;
+                                }
+
+                                $component->state($component->isMultiple() ? $normalized : [$normalized[0]]);
+                            })
+                            ->deleteUploadedFileUsing(function (BaseFileUpload $component, $file): void {
+                                if (! is_string($file) || $file === '' || Str::startsWith($file, ['http://', 'https://'])) {
+                                    return;
+                                }
+
+                                static::deleteStoredFile($component, $file);
+                            })
                             ->imageEditor()
                             ->maxSize(2048)
                             ->helperText('用于展示列表的缩略图，建议 4:3 或 16:9 比例，最大 2MB。')
@@ -258,5 +363,55 @@ class EpidemicBulletinResource extends Resource
             'create' => Pages\CreateEpidemicBulletin::route('/create'),
             'edit' => Pages\EditEpidemicBulletin::route('/{record}/edit'),
         ];
+    }
+
+    protected static function resolveStoredFileUrl(BaseFileUpload $component, string $file): ?string
+    {
+        foreach (static::candidateDisks($component) as $disk) {
+            try {
+                $url = Storage::disk($disk)->url($file);
+            } catch (\Throwable $exception) {
+                continue;
+            }
+
+            if (blank($url)) {
+                continue;
+            }
+
+            return $url;
+        }
+
+        return null;
+    }
+
+    protected static function deleteStoredFile(BaseFileUpload $component, string $file): void
+    {
+        foreach (static::candidateDisks($component) as $disk) {
+            try {
+                $filesystem = Storage::disk($disk);
+
+                if ($filesystem->exists($file)) {
+                    $filesystem->delete($file);
+                }
+            } catch (\Throwable $exception) {
+                continue;
+            }
+        }
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    protected static function candidateDisks(BaseFileUpload $component): array
+    {
+        $diskNames = [
+            $component->getDiskName(),
+            config('filament.default_filesystem_disk'),
+            config('filesystems.default'),
+            'public',
+            's3',
+        ];
+
+        return array_values(array_unique(array_filter($diskNames)));
     }
 }

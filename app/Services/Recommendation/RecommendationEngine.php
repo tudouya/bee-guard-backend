@@ -337,16 +337,33 @@ class RecommendationEngine
             return $value;
         }
 
-        $disk = config('filament.default_filesystem_disk') ?: config('filesystems.default', 'public');
+        $candidateDisks = array_values(array_unique(array_filter([
+            config('filament.default_filesystem_disk'),
+            config('filesystems.default'),
+            'public',
+            's3',
+        ])));
 
-        try {
-            return Storage::disk($disk)->url($value);
-        } catch (\Throwable $e) {
-            try {
-                return Storage::disk('public')->url($value);
-            } catch (\Throwable $e2) {
-                return null;
+        foreach ($candidateDisks as $disk) {
+            $configuredUrl = config("filesystems.disks.{$disk}.url");
+
+            if (is_string($configuredUrl) && $configuredUrl !== '') {
+                return rtrim($configuredUrl, '/') . '/' . ltrim($value, '/');
             }
+
+            try {
+                $url = Storage::disk($disk)->url($value);
+            } catch (\Throwable $exception) {
+                continue;
+            }
+
+            if (blank($url)) {
+                continue;
+            }
+
+            return $url;
         }
+
+        return null;
     }
 }

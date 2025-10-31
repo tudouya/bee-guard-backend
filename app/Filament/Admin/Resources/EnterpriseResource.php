@@ -8,6 +8,9 @@ use App\Services\Naming\EnterprisePrefixSuggester;
 use App\Support\AdminNavigation;
 use Filament\Forms;
 use Filament\Forms\Components\FileUpload;
+use Filament\Forms\Components\BaseFileUpload;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
@@ -94,8 +97,109 @@ class EnterpriseResource extends Resource
                     FileUpload::make('logo_url')
                         ->label('企业 Logo 图片')
                         ->image()
-                        ->disk('public')
+                        ->disk('s3')
                         ->directory('enterprise-logos')
+                        ->fetchFileInformation(false)
+                        ->getUploadedFileUsing(function (BaseFileUpload $component, string $file, string | array | null $storedFileNames): ?array {
+                            $file = trim($file);
+
+                            if ($file === '' || Str::startsWith($file, ['livewire-file:', 'livewire-files:'])) {
+                                return null;
+                            }
+
+                            if (Str::startsWith($file, ['http://', 'https://'])) {
+                                $name = ($component->isMultiple() ? ($storedFileNames[$file] ?? null) : $storedFileNames) ?? basename(parse_url($file, PHP_URL_PATH) ?: $file);
+
+                                return [
+                                    'name' => $name,
+                                    'size' => null,
+                                    'type' => null,
+                                    'url' => $file,
+                                ];
+                            }
+
+                            $url = static::resolveStoredFileUrl($component, $file);
+                            if ($url === null) {
+                                return null;
+                            }
+
+                            $name = ($component->isMultiple() ? ($storedFileNames[$file] ?? null) : $storedFileNames) ?? basename($file);
+
+                            return [
+                                'name' => $name,
+                                'size' => null,
+                                'type' => null,
+                                'url' => $url,
+                            ];
+                        })
+                        ->hintAction(fn (FileUpload $component) => Action::make('clearLogo')
+                            ->label('移除 Logo')
+                            ->icon('heroicon-o-trash')
+                            ->color('danger')
+                            ->requiresConfirmation()
+                            ->visible(fn (): bool => filled($component->getState()))
+                            ->action(function () use ($component): void {
+                                $state = $component->getState();
+
+                                if ($component->isMultiple() || blank($state)) {
+                                    $component->state(null);
+                                    $component->callAfterStateUpdated();
+
+                                    return;
+                                }
+
+                                $file = trim((string) $state);
+
+                                if ($file === '' || Str::startsWith($file, ['http://', 'https://'])) {
+                                    $component->state(null);
+                                    $component->callAfterStateUpdated();
+
+                                    return;
+                                }
+
+                                static::deleteStoredFile($component, $file);
+
+                                $component->state(null);
+                                $component->callAfterStateUpdated();
+                            }))
+                        ->afterStateHydrated(function (FileUpload $component, $state) {
+                            if (blank($state)) {
+                                $component->state(null);
+
+                                return;
+                            }
+
+                            $files = is_array($state) ? $state : [$state];
+
+                            $normalized = collect($files)
+                                ->map(function ($value) use ($component) {
+                                    $file = trim((string) $value);
+
+                                    if ($file === '' || Str::startsWith($file, ['http://', 'https://'])) {
+                                        return $file;
+                                    }
+
+                                    return static::resolveStoredFileUrl($component, $file) ? $file : null;
+                                })
+                                ->filter()
+                                ->values()
+                                ->all();
+
+                            if (empty($normalized)) {
+                                $component->state(null);
+
+                                return;
+                            }
+
+                            $component->state($component->isMultiple() ? $normalized : [$normalized[0]]);
+                        })
+                        ->deleteUploadedFileUsing(function (BaseFileUpload $component, $file): void {
+                            if (! is_string($file) || $file === '' || Str::startsWith($file, ['http://', 'https://'])) {
+                                return;
+                            }
+
+                            static::deleteStoredFile($component, $file);
+                        })
                         ->imageEditor()
                         ->maxSize(2048)
                         ->helperText('上传企业 Logo，建议 1:1 或 4:3 比例。文件支持 JPG/PNG，最大 2MB。'),
@@ -152,6 +256,56 @@ class EnterpriseResource extends Resource
                         ->native(false),
                 ]),
         ]);
+    }
+
+    protected static function resolveStoredFileUrl(BaseFileUpload $component, string $file): ?string
+    {
+        foreach (static::candidateDisks($component) as $disk) {
+            try {
+                $url = Storage::disk($disk)->url($file);
+            } catch (\Throwable $exception) {
+                continue;
+            }
+
+            if (blank($url)) {
+                continue;
+            }
+
+            return $url;
+        }
+
+        return null;
+    }
+
+    protected static function deleteStoredFile(BaseFileUpload $component, string $file): void
+    {
+        foreach (static::candidateDisks($component) as $disk) {
+            try {
+                $filesystem = Storage::disk($disk);
+
+                if ($filesystem->exists($file)) {
+                    $filesystem->delete($file);
+                }
+            } catch (\Throwable $exception) {
+                continue;
+            }
+        }
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    protected static function candidateDisks(BaseFileUpload $component): array
+    {
+        $diskNames = [
+            $component->getDiskName(),
+            config('filament.default_filesystem_disk'),
+            config('filesystems.default'),
+            'public',
+            's3',
+        ];
+
+        return array_values(array_unique(array_filter($diskNames)));
     }
 
     public static function table(Table $table): Table

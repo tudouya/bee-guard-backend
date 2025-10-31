@@ -2,8 +2,7 @@
 
 return [
     'temporary_file_upload' => [
-        // 使用 public 磁盘，便于在本地和生产环境下通过 URL 直接访问临时文件，
-        // 以便 RichEditor 在“附加文件”后能即时预览图片。
+        // 使用本地磁盘作为临时上传目录，避免浏览器端直传 S3 带来的预签名与网络要求
         'disk' => env('LIVEWIRE_TEMP_DISK', 'public'),
 
         // 临时目录（相对磁盘根目录）。Livewire 使用 `directory` 键。
