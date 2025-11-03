@@ -20,6 +20,7 @@ use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 
 class KnowledgeArticleResource extends Resource
 {
@@ -75,10 +76,10 @@ class KnowledgeArticleResource extends Resource
                             ->columnSpanFull()
                             ->extraAttributes(['style' => 'min-height: 400px;'])
                             // 富文本图片附件持久化配置（公开可访问，便于后台/详情页/小程序展示）
-                            ->fileAttachmentsDisk('public')
+                            ->fileAttachmentsDisk(self::articleAttachmentDisk())
                             ->fileAttachmentsDirectory(fn () => 'knowledge/' . date('Y/m'))
                             ->fileAttachmentsVisibility('public')
-                            ->getFileAttachmentUrlUsing(fn ($file) => Storage::disk('public')->url($file)),
+                            ->getFileAttachmentUrlUsing(fn ($file) => self::resolveAttachmentUrl((string) $file)),
                     ])
                     ->columns(1)
                     ->columnSpan(['default' => 1, 'xl' => 8]),
@@ -91,7 +92,6 @@ class KnowledgeArticleResource extends Resource
         return $table
             ->query(fn () => KnowledgeArticle::query()->with('disease'))
             ->columns([
-                TextColumn::make('id')->label('ID')->sortable()->toggleable(),
                 TextColumn::make('title')->label('文章标题')->searchable()->sortable()->wrap(),
                 TextColumn::make('disease.name')->label('关联病种')->sortable()->searchable(),
                 TextColumn::make('sort')->label('排序值')->sortable(),
@@ -142,5 +142,49 @@ class KnowledgeArticleResource extends Resource
             'create' => Pages\CreateKnowledgeArticle::route('/create'),
             'edit' => Pages\EditKnowledgeArticle::route('/{record}/edit'),
         ];
+}
+
+    private static function articleAttachmentDisk(): string
+    {
+        $preferred = 's3';
+
+        if (config()->has("filesystems.disks.{$preferred}")) {
+            return $preferred;
+        }
+
+        $fallback = config('filament.default_filesystem_disk') ?: config('filesystems.default', 'public');
+
+        if (! config()->has("filesystems.disks.{$fallback}")) {
+            return 'public';
+        }
+
+        return $fallback;
+    }
+
+    private static function resolveAttachmentUrl(string $path): string
+    {
+        if (Str::startsWith($path, ['http://', 'https://'])) {
+            return $path;
+        }
+
+        $disk = self::articleAttachmentDisk();
+
+        if ($disk === 's3') {
+            $s3Url = rtrim((string) config('filesystems.disks.s3.url'), '/');
+
+            if ($s3Url !== '') {
+                return $s3Url . '/' . ltrim($path, '/');
+            }
+        }
+
+        try {
+            return Storage::disk($disk)->url($path);
+        } catch (\Throwable $exception) {
+            if ($path !== '' && $path[0] === '/') {
+                return url($path);
+            }
+
+            return $path;
+        }
     }
 }

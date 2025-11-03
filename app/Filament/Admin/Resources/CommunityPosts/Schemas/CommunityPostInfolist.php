@@ -228,7 +228,8 @@ class CommunityPostInfolist
                         Text::make('审核时间')->color('gray')->weight('medium')->columnSpan(1),
                         Text::make(fn (CommunityPost $record) => optional($record->reviewed_at)?->format('Y-m-d') ?: '—')->columnSpan(3),
 
-                        Text::make('驳回原因')->color('gray')->weight('medium')->columnSpan(1)
+                        Text::make('驳回原因')->color('gray')->weight('medium')
+                            ->columnSpan(1)
                             ->visible(fn (CommunityPost $record) => filled($record->reject_reason)),
                         Text::make(fn (CommunityPost $record) => $record->reject_reason ?: '—')
                             ->color('danger')
@@ -251,14 +252,14 @@ class CommunityPostInfolist
         $paragraphs = collect(preg_split('/\r\n|\r|\n/', trim((string) $content)))
             ->map(fn (string $line) => trim($line))
             ->filter()
-            ->map(fn (string $line) => '<p class="leading-relaxed text-gray-800">' . e($line) . '</p>')
+            ->map(fn (string $line) => '<p class="leading-relaxed text-gray-800 break-words break-all whitespace-pre-wrap" style="word-break: break-all; overflow-wrap: anywhere;">' . e($line) . '</p>')
             ->implode('');
 
         if ($paragraphs === '') {
             return new HtmlString('<span class="text-gray-400">暂无正文</span>');
         }
 
-        return new HtmlString('<div class="space-y-3">' . $paragraphs . '</div>');
+        return new HtmlString('<div class="space-y-3 break-words break-all whitespace-pre-wrap max-w-full overflow-hidden" style="word-break: break-all; overflow-wrap: anywhere;">' . $paragraphs . '</div>');
     }
 
     private static function resolveImageUrls(CommunityPost $record): array
@@ -294,7 +295,10 @@ class CommunityPostInfolist
         $components = [
             Text::make(fn () => self::formatContent($record->content))
                 ->columnSpanFull()
-                ->extraAttributes(['class' => 'text-gray-800 text-base leading-relaxed']),
+                ->extraAttributes([
+                    'class' => 'text-gray-800 text-base leading-relaxed break-words break-all whitespace-pre-wrap max-w-full overflow-hidden',
+                    'style' => 'word-break: break-all; overflow-wrap: anywhere;',
+                ]),
         ];
 
         $images = self::resolveImageUrls($record);
