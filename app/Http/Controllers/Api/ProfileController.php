@@ -7,6 +7,7 @@ use App\Http\Requests\Api\Profile\ProfileUpdateRequest;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 
 class ProfileController extends Controller
 {
@@ -56,13 +57,25 @@ class ProfileController extends Controller
         if ($value === '') {
             return '';
         }
-        if (str_starts_with($value, 'http://') || str_starts_with($value, 'https://')) {
+        if (Str::startsWith($value, ['http://', 'https://'])) {
             return $value;
         }
 
-        // If looks like a path stored on the public disk, try to convert to URL
+        $s3Url = rtrim((string) config('filesystems.disks.s3.url'), '/');
+
+        if ($s3Url !== '') {
+            return $s3Url . '/' . ltrim($value, '/');
+        }
+
+        $disk = config('filesystems.default', 'public');
+
+        if (! config()->has("filesystems.disks.{$disk}")) {
+            $disk = 'public';
+        }
+
+        // If looks like a path stored on the configured disk, try to convert to URL
         try {
-            $path = Storage::url($value); // typically "/storage/..."
+            $path = Storage::disk($disk)->url($value);
             if (str_starts_with($path, 'http://') || str_starts_with($path, 'https://')) {
                 return $path;
             }

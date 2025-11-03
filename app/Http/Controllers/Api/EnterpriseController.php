@@ -7,6 +7,7 @@ use App\Models\Enterprise;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 use InvalidArgumentException;
 
 class EnterpriseController extends Controller
@@ -126,8 +127,14 @@ class EnterpriseController extends Controller
             return null;
         }
 
-        if (preg_match('/^https?:\/\//i', $value)) {
+        if (Str::startsWith($value, ['http://', 'https://'])) {
             return $value;
+        }
+
+        $s3Url = rtrim((string) config('filesystems.disks.s3.url'), '/');
+
+        if ($s3Url !== '') {
+            return $s3Url . '/' . ltrim($value, '/');
         }
 
         $candidateDisks = array_values(array_unique(array_filter([

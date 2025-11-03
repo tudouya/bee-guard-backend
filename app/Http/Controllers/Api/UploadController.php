@@ -15,10 +15,20 @@ class UploadController extends Controller
         $user = $request->user();
         $file = $request->file('file');
 
-        $disk = 'public';
         $scene = (string) ($request->input('scene') ?? '');
+        $defaultDisk = config('filesystems.default', 'public');
+        $disk = $scene === 'avatar' ? 's3' : $defaultDisk;
+
+        if (! config()->has("filesystems.disks.{$disk}")) {
+            $disk = $defaultDisk;
+        }
+
+        if (! config()->has("filesystems.disks.{$disk}")) {
+            $disk = 'public';
+        }
+
         $baseDir = ($scene === 'avatar') ? 'avatars' : 'payment-proofs';
-        $path = $file->store($baseDir.'/'.date('Ymd'), $disk);
+        $path = $file->store($baseDir . '/' . date('Ymd'), $disk);
         $upload = Upload::query()->create([
             'user_id' => $user?->id,
             'disk' => $disk,
