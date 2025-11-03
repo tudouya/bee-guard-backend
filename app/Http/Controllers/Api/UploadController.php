@@ -7,6 +7,7 @@ use App\Http\Requests\Api\Uploads\UploadStoreRequest;
 use App\Models\Upload;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 
 class UploadController extends Controller
 {
@@ -15,9 +16,15 @@ class UploadController extends Controller
         $user = $request->user();
         $file = $request->file('file');
 
-        $scene = (string) ($request->input('scene') ?? '');
+        $scene = Str::lower(trim((string) ($request->input('scene') ?? '')));
         $defaultDisk = config('filesystems.default', 'public');
-        $disk = $scene === 'avatar' ? 's3' : $defaultDisk;
+
+        $disk = match ($scene) {
+            'avatar' => 's3',
+            'community', 'community_post', 'community-post', 'post', 'experience', 'experience_post', 'experience-post' => 's3',
+            'payment_proof', 'payment-proof', 'paymentproof', 'payment_proofs' => $defaultDisk,
+            default => 's3',
+        };
 
         if (! config()->has("filesystems.disks.{$disk}")) {
             $disk = $defaultDisk;
@@ -27,7 +34,12 @@ class UploadController extends Controller
             $disk = 'public';
         }
 
-        $baseDir = ($scene === 'avatar') ? 'avatars' : 'payment-proofs';
+        $baseDir = match ($scene) {
+            'avatar' => 'avatars',
+            'community', 'community_post', 'community-post', 'post', 'experience', 'experience_post', 'experience-post' => 'community/posts',
+            'payment_proof', 'payment-proof', 'paymentproof', 'payment_proofs' => 'payment-proofs',
+            default => 'uploads',
+        };
         $path = $file->store($baseDir . '/' . date('Ymd'), $disk);
         $upload = Upload::query()->create([
             'user_id' => $user?->id,

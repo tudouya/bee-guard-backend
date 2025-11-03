@@ -42,7 +42,7 @@ class CommunityPostsTest extends TestCase
 
     public function test_authenticated_roles_can_create_post(): void
     {
-        Storage::fake('public');
+        Storage::fake('s3');
 
         $roles = ['farmer', 'enterprise_admin', 'super_admin'];
 
