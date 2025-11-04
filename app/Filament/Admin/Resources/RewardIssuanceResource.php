@@ -61,6 +61,9 @@ class RewardIssuanceResource extends Resource
                     Placeholder::make('farmer')
                         ->label('蜂农')
                         ->content(fn (RewardIssuance $record) => $record->farmer?->display_name ?? '-'),
+                    Placeholder::make('farmer_phone')
+                        ->label('蜂农手机号')
+                        ->content(fn (RewardIssuance $record) => $record->farmer?->phone ?? '—'),
                     Placeholder::make('post')
                         ->label('关联内容')
                         ->content(fn (RewardIssuance $record) => $record->post?->title ?? ('帖子 #' . $record->community_post_id)),
@@ -134,6 +137,11 @@ class RewardIssuanceResource extends Resource
                     ->sortable(),
                 TextColumn::make('farmer.display_name')
                     ->label('蜂农')
+                    ->searchable()
+                    ->sortable(),
+                TextColumn::make('farmer.phone')
+                    ->label('蜂农手机号')
+                    ->toggleable()
                     ->searchable()
                     ->sortable(),
                 TextColumn::make('post.title')
