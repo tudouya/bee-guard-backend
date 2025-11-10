@@ -43,6 +43,24 @@ class UserResource extends Resource
                             ->maxLength(191)
                             ->nullable()
                             ->unique(ignoreRecord: true),
+                       TextInput::make('phone')
+                            ->label('手机号')
+                            ->tel()
+                            ->maxLength(32)
+                            ->nullable()
+                            ->extraInputAttributes([
+                                'x-ref' => 'phoneInput',
+                            ])
+                            ->suffixActions([
+                                Action::make('copy-phone')
+                                    ->icon('heroicon-m-document-duplicate')
+                                    ->tooltip('复制手机号')
+                                    ->visible(fn (callable $get) => filled($get('phone')))
+                                    ->extraAttributes([
+                                        'class' => 'text-gray-500 hover:text-primary-600 cursor-pointer',
+                                        'x-on:click.stop.prevent' => self::copyToClipboardScript('$refs.phoneInput?.value ?? \'\''),
+                                    ]),
+                            ]),
                         TextInput::make('email')
                             ->label('邮箱')
                             ->email()
@@ -113,6 +131,10 @@ class UserResource extends Resource
                 TextColumn::make('id')->label('ID')->sortable()->toggleable(),
                 TextColumn::make('display_name')->label('姓名'),
                 TextColumn::make('username')->label('用户名')->searchable()->toggleable(),
+                TextColumn::make('phone')
+                    ->label('手机号')
+                    ->searchable()
+                    ->toggleable(),
                 TextColumn::make('email')->label('邮箱')->searchable()->toggleable(),
                 TextColumn::make('role')
                     ->label('角色')
@@ -143,6 +165,41 @@ class UserResource extends Resource
             ->bulkActions([
                 \Filament\Actions\DeleteBulkAction::make(),
             ]);
+    }
+
+    public static function copyToClipboardScript(string $valueExpression): string
+    {
+        $script = <<<'JS'
+(() => {
+    const rawValue = VALUE_EXPRESSION;
+    const value = (rawValue ?? '').toString().trim();
+
+    if (! value.length) {
+        return;
+    }
+
+    const fallbackCopy = (text) => {
+        const textarea = document.createElement('textarea');
+        textarea.value = text;
+        textarea.style.position = 'fixed';
+        textarea.style.opacity = '0';
+        textarea.style.pointerEvents = 'none';
+        document.body.appendChild(textarea);
+        textarea.focus();
+        textarea.select();
+        document.execCommand('copy');
+        textarea.remove();
+    };
+
+    if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(value).catch(() => fallbackCopy(value));
+    } else {
+        fallbackCopy(value);
+    }
+})();
+JS;
+
+        return str_replace('VALUE_EXPRESSION', $valueExpression, preg_replace('/\s+/', ' ', trim($script)));
     }
 
     public static function getPages(): array
