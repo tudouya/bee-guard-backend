@@ -48,6 +48,10 @@ class UserResource extends Resource
                             ->tel()
                             ->maxLength(32)
                             ->nullable()
+                            ->unique(ignoreRecord: true)
+                            ->validationMessages([
+                                'unique' => '该手机号已存在',
+                            ])
                             ->extraInputAttributes([
                                 'x-ref' => 'phoneInput',
                             ])
