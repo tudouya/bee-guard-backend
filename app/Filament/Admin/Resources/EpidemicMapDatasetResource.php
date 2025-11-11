@@ -7,7 +7,6 @@ use App\Models\Disease;
 use App\Models\EpidemicMapDataset;
 use App\Models\Region;
 use Filament\Forms\Components\DatePicker;
-use Filament\Forms\Components\Hidden;
 use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
@@ -63,11 +62,11 @@ class EpidemicMapDatasetResource extends Resource
                         ->required()
                         ->reactive()
                         ->afterStateUpdated(function (?string $state, Set $set) {
-                            $set('district_code', null);
                             $set('city_code', null);
+                            $set('district_code', null);
                         }),
-                    Select::make('district_code')
-                        ->label('区县')
+                    Select::make('city_code')
+                        ->label('城市')
                         ->searchable()
                         ->native(false)
                         ->options(function (callable $get) {
@@ -78,8 +77,7 @@ class EpidemicMapDatasetResource extends Resource
 
                             return Region::query()
                                 ->where('province_code', $provinceCode)
-                                ->whereNotNull('city_code')
-                                ->whereColumn('city_code', '!=', 'code')
+                                ->whereColumn('city_code', 'code')
                                 ->orderBy('code')
                                 ->pluck('name', 'code')
                                 ->toArray();
@@ -87,15 +85,26 @@ class EpidemicMapDatasetResource extends Resource
                         ->required()
                         ->reactive()
                         ->afterStateUpdated(function (?string $state, Set $set) {
-                            if (!$state) {
-                                $set('city_code', null);
-                                return;
+                            $set('district_code', null);
+                        }),
+                    Select::make('district_code')
+                        ->label('区县')
+                        ->searchable()
+                        ->native(false)
+                        ->options(function (callable $get) {
+                            $cityCode = $get('city_code');
+                            if (!$cityCode) {
+                                return [];
                             }
 
-                            $region = Region::query()->where('code', $state)->first();
-                            $set('city_code', $region?->city_code);
-                        }),
-                    Hidden::make('city_code'),
+                            return Region::query()
+                                ->where('city_code', $cityCode)
+                                ->where('code', '!=', $cityCode)
+                                ->orderBy('code')
+                                ->pluck('name', 'code')
+                                ->toArray();
+                        })
+                        ->required(),
                     DatePicker::make('data_updated_at')
                         ->label('数据更新时间')
                         ->native(false)
@@ -202,6 +211,11 @@ class EpidemicMapDatasetResource extends Resource
                 TextColumn::make('year')->label('年份')->sortable(),
                 TextColumn::make('province_code')
                     ->label('省份')
+                    ->formatStateUsing(fn (?string $state) => self::resolveRegionName($state))
+                    ->searchable()
+                    ->sortable(),
+                TextColumn::make('city_code')
+                    ->label('城市')
                     ->formatStateUsing(fn (?string $state) => self::resolveRegionName($state))
                     ->searchable()
                     ->sortable(),

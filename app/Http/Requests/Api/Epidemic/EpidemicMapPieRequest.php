@@ -16,6 +16,7 @@ class EpidemicMapPieRequest extends FormRequest
         $this->merge([
             'year' => $this->year ? (int) $this->year : null,
             'compare_year' => $this->compare_year ? (int) $this->compare_year : null,
+            'month' => $this->month ? (int) $this->month : null,
         ]);
     }
 
@@ -26,6 +27,7 @@ class EpidemicMapPieRequest extends FormRequest
             'district_code' => ['required', 'string', 'max:12'],
             'year' => ['sometimes', 'nullable', 'integer', 'min:2000', 'max:2100'],
             'compare_year' => ['sometimes', 'nullable', 'integer', 'min:2000', 'max:2100'],
+            'month' => ['sometimes', 'nullable', 'integer', 'min:1', 'max:12'],
         ];
     }
 }

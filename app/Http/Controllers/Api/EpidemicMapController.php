@@ -20,12 +20,14 @@ class EpidemicMapController extends Controller
         $districtCode = $request->string('district_code')->toString();
         $year = $request->input('year', (int) now()->year);
         $compareYear = $request->input('compare_year');
+        $month = $request->input('month');
 
         $payload = $this->service->buildPieDataset(
             $provinceCode,
             $districtCode,
             (int) $year,
-            $compareYear !== null ? (int) $compareYear : null
+            $compareYear !== null ? (int) $compareYear : null,
+            $month !== null ? (int) $month : null
         );
 
         return response()->json([

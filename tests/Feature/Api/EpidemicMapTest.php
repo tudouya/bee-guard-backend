@@ -107,7 +107,8 @@ class EpidemicMapTest extends TestCase
             ->assertJsonPath('data.groups.0.key', 'current')
             ->assertJsonPath('data.groups.0.months.0.hasData', true)
             ->assertJsonPath('data.groups.1.key', 'previous')
-            ->assertJsonPath('data.groups.1.months.0.hasData', true);
+            ->assertJsonPath('data.groups.1.months.0.hasData', true)
+            ->assertJsonPath('data.availableMonths.0', 1);
 
         $legend = $response->json('data.legend');
         $this->assertCount(2, $legend);
@@ -125,6 +126,161 @@ class EpidemicMapTest extends TestCase
 
         $monthTwo = collect($response->json('data.groups.0.months'))->firstWhere('monthValue', 2);
         $this->assertFalse($monthTwo['hasData']);
+    }
+
+    public function test_pie_endpoint_supports_month_filtering(): void
+    {
+        $provinceCode = '11';
+        $cityCode = '1101';
+        $districtCode = '110101';
+
+        Region::query()->create([
+            'code' => $provinceCode,
+            'name' => '北京市',
+            'province_code' => $provinceCode,
+            'city_code' => null,
+        ]);
+        Region::query()->create([
+            'code' => $cityCode,
+            'name' => '市辖区',
+            'province_code' => $provinceCode,
+            'city_code' => $cityCode,
+        ]);
+        Region::query()->create([
+            'code' => $districtCode,
+            'name' => '东城区',
+            'province_code' => $provinceCode,
+            'city_code' => $cityCode,
+        ]);
+
+        Disease::query()->create([
+            'code' => 'SBV',
+            'name' => '囊状幼虫病',
+            'map_alias' => '囊状幼虫病',
+            'map_color' => '#F05A5A',
+            'status' => 'active',
+            'sort' => 0,
+            'map_order' => 0,
+        ]);
+
+        $dataset = EpidemicMapDataset::query()->create([
+            'year' => 2025,
+            'province_code' => $provinceCode,
+            'city_code' => $cityCode,
+            'district_code' => $districtCode,
+            'source_type' => 'manual',
+            'data_updated_at' => now()->subDay(),
+        ]);
+        $dataset->entries()->createMany([
+            [
+                'month' => 1,
+                'disease_code' => 'SBV',
+                'positive_cases' => 10,
+                'sample_total' => 40,
+            ],
+            [
+                'month' => 2,
+                'disease_code' => 'SBV',
+                'positive_cases' => 8,
+                'sample_total' => 32,
+            ],
+        ]);
+
+        $response = $this->getJson(sprintf(
+            '/api/epidemic/map/pie?province_code=%s&district_code=%s&year=2025&month=2',
+            $provinceCode,
+            $districtCode
+        ));
+
+        $response->assertOk()
+            ->assertJsonPath('data.groups.0.months.0.monthValue', 2)
+            ->assertJsonMissingPath('data.groups.0.months.1')
+            ->assertJsonPath('data.availableMonths.0', 1)
+            ->assertJsonPath('data.availableMonths.1', 2);
+
+        $slices = $response->json('data.groups.0.months.0.slices');
+        $this->assertCount(1, $slices);
+        $this->assertSame(8, $slices[0]['positive']);
+    }
+
+    public function test_pie_endpoint_merges_manual_and_auto_sources(): void
+    {
+        $provinceCode = '14';
+        $cityCode = '1408';
+        $districtCode = '140825';
+
+        Region::query()->create([
+            'code' => $provinceCode,
+            'name' => '山西省',
+            'province_code' => $provinceCode,
+            'city_code' => null,
+        ]);
+        Region::query()->create([
+            'code' => $cityCode,
+            'name' => '运城市',
+            'province_code' => $provinceCode,
+            'city_code' => $cityCode,
+        ]);
+        Region::query()->create([
+            'code' => $districtCode,
+            'name' => '新绛县',
+            'province_code' => $provinceCode,
+            'city_code' => $cityCode,
+        ]);
+
+        Disease::query()->create([
+            'code' => 'AFB',
+            'name' => '美洲幼虫病',
+            'map_alias' => '美洲幼虫病',
+            'map_color' => '#F05A5A',
+            'status' => 'active',
+            'sort' => 0,
+            'map_order' => 0,
+        ]);
+
+        $manual = EpidemicMapDataset::query()->create([
+            'year' => 2025,
+            'province_code' => $provinceCode,
+            'city_code' => $cityCode,
+            'district_code' => $districtCode,
+            'source_type' => 'manual',
+            'data_updated_at' => now()->subDays(2),
+        ]);
+        $manual->entries()->create([
+            'month' => 3,
+            'disease_code' => 'AFB',
+            'positive_cases' => 7,
+            'sample_total' => 40,
+        ]);
+
+        $auto = EpidemicMapDataset::query()->create([
+            'year' => 2025,
+            'province_code' => $provinceCode,
+            'city_code' => $cityCode,
+            'district_code' => $districtCode,
+            'source_type' => 'auto',
+            'data_updated_at' => now()->subDay(),
+        ]);
+        $auto->entries()->create([
+            'month' => 3,
+            'disease_code' => 'AFB',
+            'positive_cases' => 4,
+            'sample_total' => 20,
+        ]);
+
+        $response = $this->getJson(sprintf(
+            '/api/epidemic/map/pie?province_code=%s&district_code=%s&year=2025&month=3',
+            $provinceCode,
+            $districtCode
+        ));
+
+        $response->assertOk();
+
+        $slices = $response->json('data.groups.0.months.0.slices');
+        $this->assertSame(11, $slices[0]['positive']);
+        $this->assertSame(60, $slices[0]['samples']);
+        $this->assertEqualsWithDelta(11 / 60, $slices[0]['rate'], 0.000001);
+        $this->assertEqualsCanonicalizing(['manual', 'auto'], $slices[0]['sources']);
     }
 
     public function test_detection_creation_aggregates_into_auto_dataset(): void

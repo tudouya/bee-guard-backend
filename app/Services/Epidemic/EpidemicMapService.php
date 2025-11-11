@@ -29,19 +29,25 @@ class EpidemicMapService
     /**
      * 构建疫情地图饼图数据
      */
-    public function buildPieDataset(string $provinceCode, string $districtCode, int $year, ?int $compareYear = null): array
+    public function buildPieDataset(string $provinceCode, string $districtCode, int $year, ?int $compareYear = null, ?int $month = null): array
     {
         $compareYear ??= $year - 1;
+        $monthFilter = $month !== null ? max(1, min(12, $month)) : null;
 
         $legend = $this->buildLegend();
         $legendByCode = $legend->keyBy('code');
 
-        $currentDataset = $this->findDataset($provinceCode, $districtCode, $year);
-        $previousDataset = $compareYear ? $this->findDataset($provinceCode, $districtCode, $compareYear) : null;
+        $currentDatasets = $this->findDatasetsBySource($provinceCode, $districtCode, $year);
+        $previousDatasets = $compareYear
+            ? $this->findDatasetsBySource($provinceCode, $districtCode, $compareYear)
+            : ['manual' => null, 'auto' => null];
+
+        $currentEntries = $this->mergeDatasetEntries($currentDatasets['manual'], $currentDatasets['auto']);
+        $previousEntries = $this->mergeDatasetEntries($previousDatasets['manual'], $previousDatasets['auto']);
 
         $groups = collect([
-            $this->buildGroupPayload('current', '今年病害流行图', $year, $currentDataset, $legendByCode),
-            $this->buildGroupPayload('previous', '往年病害流行图', $compareYear, $previousDataset, $legendByCode),
+            $this->buildGroupPayload('current', '今年病害流行图', $year, $currentEntries, $legendByCode, $monthFilter),
+            $this->buildGroupPayload('previous', '往年病害流行图', $compareYear, $previousEntries, $legendByCode, $monthFilter),
         ])->filter()->values();
 
         $names = $this->regions->mapCodesToNames($provinceCode, null, $districtCode);
@@ -49,10 +55,14 @@ class EpidemicMapService
         $districtName = $names['district'] ?? null;
 
         $updatedAt = collect([
-            $currentDataset?->data_updated_at,
-            $currentDataset?->updated_at,
-            $previousDataset?->data_updated_at,
-            $previousDataset?->updated_at,
+            $currentDatasets['manual']?->data_updated_at,
+            $currentDatasets['manual']?->updated_at,
+            $currentDatasets['auto']?->data_updated_at,
+            $currentDatasets['auto']?->updated_at,
+            $previousDatasets['manual']?->data_updated_at,
+            $previousDatasets['manual']?->updated_at,
+            $previousDatasets['auto']?->data_updated_at,
+            $previousDatasets['auto']?->updated_at,
         ])->filter()->max();
 
         return [
@@ -64,27 +74,38 @@ class EpidemicMapService
             ],
             'legend' => $legend->values()->all(),
             'groups' => $groups->all(),
+            'availableMonths' => $this->resolveAvailableMonthsFromCollections($currentEntries, $previousEntries),
             'updatedAt' => $updatedAt?->toDateTimeString(),
         ];
     }
 
-    private function findDataset(string $provinceCode, string $districtCode, int $year): ?EpidemicMapDataset
+    private function findDatasetsBySource(string $provinceCode, string $districtCode, int $year): array
     {
         if ($year < 0) {
-            return null;
+            return [
+                'manual' => null,
+                'auto' => null,
+            ];
         }
 
-        return EpidemicMapDataset::query()
-            ->with(['entries' => function ($query) {
-                $query->orderBy('month')->orderBy('disease_code');
-            }])
-            ->where('year', $year)
-            ->where('province_code', $provinceCode)
-            ->where('district_code', $districtCode)
-            ->orderByDesc('locked')
-            ->orderByRaw("CASE WHEN source_type = 'manual' THEN 0 ELSE 1 END")
-            ->orderByDesc('data_updated_at')
-            ->first();
+        $sources = ['manual', 'auto'];
+
+        $datasets = [];
+        foreach ($sources as $source) {
+            $datasets[$source] = EpidemicMapDataset::query()
+                ->with(['entries' => function ($query) {
+                    $query->orderBy('month')->orderBy('disease_code');
+                }])
+                ->where('year', $year)
+                ->where('province_code', $provinceCode)
+                ->where('district_code', $districtCode)
+                ->where('source_type', $source)
+                ->orderByDesc('locked')
+                ->orderByDesc('data_updated_at')
+                ->first();
+        }
+
+        return $datasets + ['manual' => null, 'auto' => null];
     }
 
     private function buildLegend(): Collection
@@ -111,37 +132,43 @@ class EpidemicMapService
             });
     }
 
-    private function buildGroupPayload(string $key, string $title, ?int $year, ?EpidemicMapDataset $dataset, Collection $legendByCode): ?array
+    private function buildGroupPayload(string $key, string $title, ?int $year, Collection $entriesByMonth, Collection $legendByCode, ?int $filterMonth = null): ?array
     {
         if (!$year) {
             return null;
         }
 
-        $entriesByMonth = $dataset?->entries->groupBy('month') ?? collect();
+        $entriesByMonth = $entriesByMonth ?? collect();
 
         $months = [];
-        for ($month = 1; $month <= 12; $month++) {
+        $targetMonths = $filterMonth ? [$filterMonth] : range(1, 12);
+        foreach ($targetMonths as $month) {
             $monthEntries = $entriesByMonth->get($month, collect());
+            if (!($monthEntries instanceof Collection)) {
+                $monthEntries = collect($monthEntries);
+            }
             $hasData = $monthEntries->isNotEmpty();
 
-            $slices = $monthEntries->map(function ($entry) use ($legendByCode) {
-                $meta = $legendByCode->get($entry->disease_code, [
-                    'code' => $entry->disease_code,
-                    'key' => Str::lower($entry->disease_code),
-                    'label' => $entry->disease_code,
-                    'name' => $entry->disease_code,
+            $slices = $monthEntries->map(function (array $entry) use ($legendByCode) {
+                $diseaseCode = $entry['disease_code'];
+                $meta = $legendByCode->get($diseaseCode, [
+                    'code' => $diseaseCode,
+                    'key' => Str::lower($diseaseCode),
+                    'label' => $diseaseCode,
+                    'name' => $diseaseCode,
                     'color' => '#888888',
                 ]);
 
                 return [
-                    'diseaseCode' => $entry->disease_code,
-                    'key' => $meta['key'] ?? Str::lower($entry->disease_code),
-                    'label' => $meta['label'] ?? $entry->disease_code,
-                    'name' => $meta['name'] ?? $entry->disease_code,
+                    'diseaseCode' => $diseaseCode,
+                    'key' => $meta['key'] ?? Str::lower($diseaseCode),
+                    'label' => $meta['label'] ?? $diseaseCode,
+                    'name' => $meta['name'] ?? $diseaseCode,
                     'color' => $meta['color'] ?? '#888888',
-                    'positive' => $entry->positive_cases,
-                    'samples' => $entry->sample_total,
-                    'rate' => $entry->rate,
+                    'positive' => $entry['positive'],
+                    'samples' => $entry['samples'],
+                    'rate' => $entry['rate'],
+                    'sources' => $entry['sources'] ?? [],
                 ];
             })->values()->all();
 
@@ -160,5 +187,77 @@ class EpidemicMapService
             'year' => $year,
             'months' => $months,
         ];
+    }
+
+    /**
+     * @return array<int>
+     */
+    private function resolveAvailableMonthsFromCollections(Collection ...$collections): array
+    {
+        return collect($collections)
+            ->filter()
+            ->flatMap(function (Collection $collection) {
+                return $collection->keys();
+            })
+            ->filter()
+            ->map(fn ($month) => (int) $month)
+            ->unique()
+            ->sort()
+            ->values()
+            ->all();
+    }
+
+    private function mergeDatasetEntries(?EpidemicMapDataset $manual, ?EpidemicMapDataset $auto): Collection
+    {
+        $result = collect();
+
+        $accumulate = function (?EpidemicMapDataset $dataset, string $source) use (&$result) {
+            if (!$dataset) {
+                return;
+            }
+
+            $dataset->entries->each(function ($entry) use (&$result, $source) {
+                $month = (int) $entry->month;
+                $diseaseCode = $entry->disease_code;
+
+                $monthBucket = $result->get($month, collect());
+                if (!($monthBucket instanceof Collection)) {
+                    $monthBucket = collect($monthBucket);
+                }
+
+                $current = $monthBucket->get($diseaseCode, [
+                    'disease_code' => $diseaseCode,
+                    'positive' => 0,
+                    'samples' => 0,
+                    'sources' => [],
+                ]);
+
+                $current['positive'] += (int) $entry->positive_cases;
+                $current['samples'] += (int) $entry->sample_total;
+                $current['sources'][$source] = true;
+
+                $monthBucket->put($diseaseCode, $current);
+                $result->put($month, $monthBucket);
+            });
+        };
+
+        $accumulate($manual, 'manual');
+        $accumulate($auto, 'auto');
+
+        return $result->map(function (Collection $diseaseCollection) {
+            return $diseaseCollection->map(function (array $item) {
+                $samples = max(0, (int) $item['samples']);
+                $positive = max(0, (int) $item['positive']);
+                $rate = $samples > 0 ? round($positive / $samples, 6) : 0.0;
+
+                return [
+                    'disease_code' => $item['disease_code'],
+                    'positive' => $positive,
+                    'samples' => $samples,
+                    'rate' => $rate,
+                    'sources' => array_keys($item['sources'] ?? []),
+                ];
+            });
+        });
     }
 }
