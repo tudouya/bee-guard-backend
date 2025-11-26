@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use App\Models\Enterprise;
 
 class DetectionCode extends Model
@@ -46,6 +47,11 @@ class DetectionCode extends Model
     public function shippingNotifications(): HasMany
     {
         return $this->hasMany(ShippingNotification::class);
+    }
+
+    public function detection(): HasOne
+    {
+        return $this->hasOne(Detection::class);
     }
 
     protected static function booted(): void

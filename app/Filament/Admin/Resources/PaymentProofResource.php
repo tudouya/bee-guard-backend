@@ -33,10 +33,15 @@ class PaymentProofResource extends Resource
     public static function table(Table $table): Table
     {
         return $table
+            ->defaultSort('order_id', 'desc')
             ->columns([
-                TextColumn::make('id')->label('编号')->sortable(),
                 TextColumn::make('order_id')->label('订单号')->sortable(),
                 TextColumn::make('order.user.display_name')->label('蜂农'),
+                TextColumn::make('order.user.phone')
+                    ->label('联系电话')
+                    ->formatStateUsing(fn (?string $state): string => $state ?: '—')
+                    ->searchable()
+                    ->toggleable(),
                 TextColumn::make('amount')->label('金额')->money('CNY', true)->sortable(),
                 TextColumn::make('method')
                     ->label('提交方式')

@@ -287,12 +287,19 @@ class DetectionResource extends Resource
                         });
                     })
                     ->toggleable(),
+                TextColumn::make('user.nickname')
+                    ->label('蜂农昵称')
+                    ->formatStateUsing(fn (?string $state, $record) => $state ?: ($record->user->display_name ?? '—'))
+                    ->searchable()
+                    ->toggleable(),
                 TextColumn::make('user.phone')
-                    ->label('用户手机号')
+                    ->label('蜂农手机号')
                     ->searchable()
                     ->formatStateUsing(fn (?string $state): string => $state ?: '—')
                     ->toggleable(),
                 TextColumn::make('sample_no')->label('样品编号')->searchable()->sortable(),
+                TextColumn::make('sampled_at')->label('取样时间')->date('Y-m-d')->sortable(),
+                TextColumn::make('status')->label('状态')->badge()->sortable(),
                 TagsColumn::make('sample_types')
                     ->label('样品类型')
                     ->getStateUsing(fn (Detection $record) => $record->sample_type_labels)
@@ -306,10 +313,8 @@ class DetectionResource extends Resource
                     ->label('区县')
                     ->formatStateUsing(fn (?string $state) => self::resolveRegionName($state))
                     ->toggleable(),
-                TextColumn::make('sampled_at')->label('取样时间')->date('Y-m-d')->sortable(),
                 TextColumn::make('tested_at')->label('检测完成')->date('Y-m-d')->sortable(),
                 TextColumn::make('reported_at')->label('报告时间')->date('Y-m-d')->sortable(),
-                TextColumn::make('status')->label('状态')->badge()->sortable(),
                 TextColumn::make('positive_count')
                     ->label('阳性数')
                     ->badge()

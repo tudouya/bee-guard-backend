@@ -25,11 +25,12 @@ class OrderPaymentProofController extends Controller
 
         $data = $request->validated();
         $images = $this->resolveImagesToPaths((array)($data['images'] ?? []));
+        $tradeNo = $data['trade_no'] ?? null;
 
         $proof = PaymentProof::query()->create([
             'order_id' => $order->id,
             'method' => (string) $data['method'],
-            'trade_no' => (string) $data['trade_no'],
+            'trade_no' => $tradeNo !== null ? (string) $tradeNo : null,
             'amount' => (float) $data['amount'],
             'images' => $images,
             'remark' => $data['remark'] ?? null,

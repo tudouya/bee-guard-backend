@@ -6,6 +6,7 @@ use App\Models\DetectionCode;
 use App\Models\Enterprise;
 use App\Models\User;
 use App\Support\EnterpriseNavigation;
+use App\Filament\Enterprise\Resources\DetectionResource as DetectionViewResource;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Columns\TextColumn;
@@ -51,6 +52,13 @@ class DetectionCodeResource extends Resource
                 TextColumn::make('assignedUser.display_name')->label('绑定用户')->toggleable(),
                 TextColumn::make('assigned_at')->label('分配时间')->date('Y-m-d')->sortable(),
                 TextColumn::make('used_at')->label('使用时间')->date('Y-m-d')->sortable(),
+                TextColumn::make('detection_result')
+                    ->label('检测结果')
+                    ->getStateUsing(fn ($record) => $record->detection ? '查看' : '—')
+                    ->color(fn ($state) => $state === '查看' ? 'primary' : 'gray')
+                    ->weight('medium')
+                    ->url(fn ($record) => $record->detection ? DetectionViewResource::getUrl('view', ['record' => $record->detection->id]) : null)
+                    ->openUrlInNewTab(),
                 TextColumn::make('created_at')->label('创建时间')->date('Y-m-d')->sortable(),
             ])
             ->filters([
@@ -126,6 +134,7 @@ class DetectionCodeResource extends Resource
             ->modifyQueryUsing(function ($query) {
                 $user = auth()->user();
                 $isSuper = $user && (string) $user->role === 'super_admin';
+                $query->with('detection');
                 if ($isSuper) {
                     return; // 超管查看所有企业检测码
                 }

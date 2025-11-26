@@ -22,14 +22,17 @@ class EditDetectionCode extends EditRecord
      */
     protected function mutateFormDataBeforeSave(array $data): array
     {
-        if (!empty($data['assigned_user_id'])) {
-            $data['status'] = 'assigned';
+        if (($data['status'] ?? null) === 'available') {
+            $data['assigned_user_id'] = null;
+            $data['assigned_at'] = null;
+        } elseif (! empty($data['assigned_user_id'])) {
             if (empty($data['assigned_at'])) {
                 $data['assigned_at'] = now();
             }
-        } elseif (($data['status'] ?? null) === 'available') {
-            $data['assigned_user_id'] = null;
-            $data['assigned_at'] = null;
+            // Only coerce to assigned when status is blank/available; respect explicit statuses.
+            if (in_array($data['status'] ?? null, [null, '', 'available'], true)) {
+                $data['status'] = 'assigned';
+            }
         }
 
         if (($data['status'] ?? null) === 'used' && empty($data['used_at'])) {
