@@ -133,7 +133,6 @@ class DetectionsController extends Controller
             'results' => $results,
             'positiveCount' => count($positives),
             'positives' => array_values($positives),
-            'pests' => $this->buildPests($d),
             'recommendations' => $recommendations,
         ]);
     }
@@ -193,6 +192,7 @@ class DetectionsController extends Controller
     {
         $rows = [];
         $positives = [];
+        $seenCodes = [];
 
         $results = $d->relationLoaded('results') ? $d->results : $d->results()->with('disease:id,code,name,category')->get();
 
@@ -217,13 +217,17 @@ class DetectionsController extends Controller
             if ($isPositive) {
                 $positives[] = $code;
             }
+            $seenCodes[$code] = true;
         }
 
         // 按固定顺序补全缺失病种（阴性/未检测），确保名称存在
-        $appendRow = function (string $code, ?string $category = null, ?string $name = null) use (&$rows, &$resultMap) {
+        $appendRow = function (string $code, ?string $category = null, ?string $name = null) use (&$rows, &$resultMap, &$seenCodes) {
             if (isset($resultMap[$code])) {
                 $rows[] = $resultMap[$code];
                 unset($resultMap[$code]);
+                return;
+            }
+            if (isset($seenCodes[$code])) {
                 return;
             }
             $rows[] = [
@@ -234,6 +238,7 @@ class DetectionsController extends Controller
                 'levelText' => '',
                 'positive' => false,
             ];
+            $seenCodes[$code] = true;
         };
 
         foreach (self::RNA_CODES as $code) {
@@ -248,7 +253,11 @@ class DetectionsController extends Controller
 
         // 追加其余未预置的明细结果（新病种/自定义）
         foreach ($resultMap as $row) {
+            if (isset($seenCodes[$row['code']])) {
+                continue;
+            }
             $rows[] = $row;
+            $seenCodes[$row['code']] = true;
         }
 
         return [$rows, array_values(array_unique($positives))];
@@ -265,20 +274,6 @@ class DetectionsController extends Controller
             'pest_scoliidae_wasp' => ['column' => 'pest_scoliidae_wasp', 'name' => '斯氏蜜蜂茧蜂'],
             'pest_parasitic_bee_fly' => ['column' => 'pest_parasitic_bee_fly', 'name' => '异蚤蜂'],
         ];
-    }
-
-    private function buildPests(Detection $d): array
-    {
-        $items = [];
-        foreach ($this->pestColumnMap() as $code => $meta) {
-            $value = $d->{$meta['column']};
-            $items[] = [
-                'code' => $code,
-                'name' => $meta['name'],
-                'present' => is_null($value) ? null : (bool) $value,
-            ];
-        }
-        return $items;
     }
 
     private function statusText(string $status): string
