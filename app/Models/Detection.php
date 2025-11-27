@@ -98,5 +98,10 @@ class Detection extends Model
         return $this->belongsTo(DetectionCode::class);
     }
 
+    public function results()
+    {
+        return $this->hasMany(DetectionResult::class);
+    }
+
     // 宽表模式下不再有子表结果
 }

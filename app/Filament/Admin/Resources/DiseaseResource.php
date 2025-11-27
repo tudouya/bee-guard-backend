@@ -38,6 +38,17 @@ class DiseaseResource extends Resource
                         ->required()
                         ->maxLength(64)
                         ->unique(ignoreRecord: true),
+                    Select::make('category')
+                        ->label('分类')
+                        ->options([
+                            'rna' => 'RNA 病毒',
+                            'dna' => 'DNA/细菌/真菌',
+                            'pest' => '虫害',
+                            'other' => '其他',
+                        ])
+                        ->native(false)
+                        ->nullable()
+                        ->helperText('用于分组展示与推荐过滤'),
                     TextInput::make('name')
                         ->label('病种名称')
                         ->required()
@@ -101,11 +112,17 @@ class DiseaseResource extends Resource
                 TextColumn::make('id')->label('ID')->sortable()->toggleable(),
                 TextColumn::make('code')->label('病种代码')->searchable()->sortable(),
                 TextColumn::make('name')->label('病种名称')->searchable()->sortable(),
-                TextColumn::make('map_alias')->label('地图名称')->toggleable(),
-                TextColumn::make('map_color')
-                    ->label('颜色')
-                    ->formatStateUsing(fn (?string $state) => $state ?: '-')
-                    ->toggleable(),
+                TextColumn::make('category')
+                    ->label('分类')
+                    ->badge()
+                    ->formatStateUsing(fn (?string $state) => match ($state) {
+                        'rna' => 'RNA 病毒',
+                        'dna' => 'DNA/细菌/真菌',
+                        'pest' => '虫害',
+                        'other' => '其他',
+                        default => '—',
+                    })
+                    ->sortable(),
                 TextColumn::make('published_articles_count')->label('发布文章数')->sortable(),
                 TextColumn::make('status')
                     ->label('状态')

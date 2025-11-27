@@ -4,6 +4,7 @@ namespace App\Filament\Admin\Resources\DetectionResource\Pages;
 
 use App\Filament\Admin\Resources\DetectionResource;
 use App\Models\DetectionCode;
+use App\Services\DetectionResultSyncService;
 use Illuminate\Validation\ValidationException;
 use Filament\Actions;
 use Filament\Resources\Pages\EditRecord;
@@ -39,5 +40,10 @@ class EditDetection extends EditRecord
             ]);
         }
         return $data;
+    }
+
+    protected function afterSave(): void
+    {
+        app(DetectionResultSyncService::class)->sync($this->record);
     }
 }

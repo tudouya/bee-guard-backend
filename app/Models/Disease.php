@@ -11,6 +11,8 @@ class Disease extends Model
 
     protected $fillable = [
         'code',
+        'category',
+        'detection_field',
         'name',
         'map_alias',
         'map_color',

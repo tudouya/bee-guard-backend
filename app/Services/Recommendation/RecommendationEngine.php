@@ -96,10 +96,12 @@ class RecommendationEngine
             ->whereIn('disease_id', $diseaseIds)
             ->whereHas('product', function ($q) use ($limitedEnterpriseId) {
                 $q->where('status', 'active')
-                  ->when($limitedEnterpriseId, fn ($qb) => $qb->where('enterprise_id', $limitedEnterpriseId));
+                  ->when($limitedEnterpriseId, fn ($qb) => $qb->where('enterprise_id', $limitedEnterpriseId))
+                  ->whereHas('enterprise', fn ($qb) => $qb->where('status', 'active'));
             })
             ->with(['product' => fn ($query) => $query
                 ->when($limitedEnterpriseId, fn ($qb) => $qb->where('enterprise_id', $limitedEnterpriseId))
+                ->whereHas('enterprise', fn ($qb) => $qb->where('status', 'active'))
                 ->with([
                     'enterprise:id,name,contact_phone,contact_wechat,contact_link',
                     'homepageImages',
@@ -136,6 +138,7 @@ class RecommendationEngine
                 ->join('disease_product', 'products.id', '=', 'disease_product.product_id')
                 ->whereIn('disease_product.disease_id', $diseaseIds)
                 ->where('products.status', 'active')
+                ->whereHas('enterprise', fn ($qb) => $qb->where('status', 'active'))
                 ->where('products.enterprise_id', $enterpriseId)
                 ->with([
                     'enterprise:id,name,contact_phone,contact_wechat,contact_link',
@@ -167,6 +170,7 @@ class RecommendationEngine
                 ->join('disease_product', 'products.id', '=', 'disease_product.product_id')
                 ->whereIn('disease_product.disease_id', $diseaseIds)
                 ->where('products.status', 'active')
+                ->whereHas('enterprise', fn ($qb) => $qb->where('status', 'active'))
                 ->when(!empty($selectedProductIds), fn ($qb) => $qb->whereNotIn('products.id', $selectedProductIds))
                 ->with([
                     'enterprise:id,name,contact_phone,contact_wechat,contact_link',

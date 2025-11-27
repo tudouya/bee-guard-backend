@@ -19,7 +19,10 @@ class DetectionsController extends Controller
         $user = $request->user();
 
         $query = Detection::query()
-            ->with(['detectionCode:id,prefix,code'])
+            ->with([
+                'detectionCode:id,prefix,code',
+                'results.disease:id,code,name,category',
+            ])
             ->where('user_id', $user->id)
             ->orderByDesc('reported_at')
             ->orderByDesc('tested_at')
@@ -38,7 +41,7 @@ class DetectionsController extends Controller
         $diseaseNames = Disease::query()->pluck('name', 'code')->all();
 
         $data = $detections->getCollection()->map(function (Detection $d) use ($diseaseNames) {
-            $positives = $this->computePositives($d);
+        $positives = $this->computePositives($d);
             return [
                 'id' => $d->id,
                 // detectionId: prefix+code for display
@@ -76,7 +79,10 @@ class DetectionsController extends Controller
         $user = $request->user();
 
         $builder = Detection::query()
-            ->with(['detectionCode:id,prefix,code,source_type,enterprise_id'])
+            ->with([
+                'detectionCode:id,prefix,code,source_type,enterprise_id',
+                'results.disease:id,code,name,category',
+            ])
             ->where('user_id', $user->id);
 
         $detectionNumber = $request->query('detectionNumber');
@@ -103,20 +109,7 @@ class DetectionsController extends Controller
 
         $diseaseNames = Disease::query()->pluck('name', 'code')->all();
 
-        $results = [];
-        foreach ($this->diseaseColumnMap() as $code => $col) {
-            $level = $d->{$col};
-            $results[] = [
-                'code' => $code,
-                'name' => $diseaseNames[$code] ?? $code,
-                'category' => in_array($code, self::RNA_CODES, true) ? 'rna' : 'dna_bacteria_fungi',
-                'level' => $level,
-                'levelText' => $this->levelText($level),
-                'positive' => in_array($level, ['weak','medium','strong'], true),
-            ];
-        }
-
-        $positives = $this->computePositives($d);
+        [$results, $positives] = $this->buildResults($d, $diseaseNames);
         // Build recommendations via rules and mappings
         $engine = app(RecommendationEngine::class);
         $recommendations = $engine->recommendForDetection($d, $positives);
@@ -166,26 +159,111 @@ class DetectionsController extends Controller
 
     private function computePositives(Detection $d): array
     {
+        // 只读取明细表结果
+        $fromResults = $this->computePositivesFromResults($d);
+        return $fromResults ?? [];
+    }
+
+    private function computePositivesFromResults(Detection $d): ?array
+    {
+        $results = $d->relationLoaded('results') ? $d->results : $d->results()->with('disease:id,code')->get();
+
+        // 若尚未有明细记录，返回 null 以便回退到宽表逻辑
+        if ($results->count() === 0) {
+            return null;
+        }
+
         $positives = [];
-        foreach ($this->diseaseColumnMap() as $code => $col) {
-            $level = $d->{$col};
-            if (in_array($level, ['weak','medium','strong'], true)) {
+        foreach ($results as $result) {
+            $level = $result->level;
+            if (! in_array($level, ['weak', 'medium', 'strong', 'present'], true)) {
+                continue;
+            }
+
+            $code = $result->disease->code ?? null;
+            if ($code) {
                 $positives[] = $code;
             }
         }
-        return $positives;
+
+        return array_values(array_unique($positives));
+    }
+
+    private function buildResults(Detection $d, array $diseaseNames): array
+    {
+        $rows = [];
+        $positives = [];
+
+        $results = $d->relationLoaded('results') ? $d->results : $d->results()->with('disease:id,code,name,category')->get();
+
+        // 先按 code 收集已有明细结果
+        $resultMap = [];
+        foreach ($results as $result) {
+            $code = $result->disease->code ?? null;
+            if (! $code) {
+                continue;
+            }
+            $level = $result->level;
+            $isPositive = in_array($level, ['weak', 'medium', 'strong', 'present'], true);
+            $row = [
+                'code' => $code,
+                'name' => $result->disease->name ?? ($diseaseNames[$code] ?? $code),
+                'category' => $result->disease->category ?? null,
+                'level' => $level,
+                'levelText' => $this->levelText($level),
+                'positive' => $isPositive,
+            ];
+            $resultMap[$code] = $row;
+            if ($isPositive) {
+                $positives[] = $code;
+            }
+        }
+
+        // 按固定顺序补全缺失病种（阴性/未检测），确保名称存在
+        $appendRow = function (string $code, ?string $category = null, ?string $name = null) use (&$rows, &$resultMap) {
+            if (isset($resultMap[$code])) {
+                $rows[] = $resultMap[$code];
+                unset($resultMap[$code]);
+                return;
+            }
+            $rows[] = [
+                'code' => $code,
+                'name' => $name ?? $code,
+                'category' => $category,
+                'level' => null,
+                'levelText' => '',
+                'positive' => false,
+            ];
+        };
+
+        foreach (self::RNA_CODES as $code) {
+            $appendRow($code, 'rna', $diseaseNames[$code] ?? null);
+        }
+        foreach (self::DNA_CODES as $code) {
+            $appendRow($code, 'dna_bacteria_fungi', $diseaseNames[$code] ?? null);
+        }
+        foreach ($this->pestColumnMap() as $code => $meta) {
+            $appendRow($code, 'pest', $meta['name'] ?? ($diseaseNames[$code] ?? null));
+        }
+
+        // 追加其余未预置的明细结果（新病种/自定义）
+        foreach ($resultMap as $row) {
+            $rows[] = $row;
+        }
+
+        return [$rows, array_values(array_unique($positives))];
     }
 
     private function pestColumnMap(): array
     {
         return [
-            'large_mite' => ['column' => 'pest_large_mite', 'name' => '大蜂螨'],
-            'small_mite' => ['column' => 'pest_small_mite', 'name' => '小蜂螨'],
-            'wax_moth' => ['column' => 'pest_wax_moth', 'name' => '巢虫'],
-            'small_hive_beetle' => ['column' => 'pest_small_hive_beetle', 'name' => '蜂箱小甲虫'],
-            'shield_mite' => ['column' => 'pest_shield_mite', 'name' => '蜂盾螨'],
-            'scoliidae_wasp' => ['column' => 'pest_scoliidae_wasp', 'name' => '斯氏蜜蜂茧蜂'],
-            'parasitic_bee_fly' => ['column' => 'pest_parasitic_bee_fly', 'name' => '异蚤蜂'],
+            'pest_large_mite' => ['column' => 'pest_large_mite', 'name' => '大蜂螨'],
+            'pest_small_mite' => ['column' => 'pest_small_mite', 'name' => '小蜂螨'],
+            'pest_wax_moth' => ['column' => 'pest_wax_moth', 'name' => '巢虫'],
+            'pest_small_hive_beetle' => ['column' => 'pest_small_hive_beetle', 'name' => '蜂箱小甲虫'],
+            'pest_shield_mite' => ['column' => 'pest_shield_mite', 'name' => '蜂盾螨'],
+            'pest_scoliidae_wasp' => ['column' => 'pest_scoliidae_wasp', 'name' => '斯氏蜜蜂茧蜂'],
+            'pest_parasitic_bee_fly' => ['column' => 'pest_parasitic_bee_fly', 'name' => '异蚤蜂'],
         ];
     }
 

@@ -15,7 +15,7 @@ class DetectionAggregationService
 {
     private const SOURCE_AUTO = 'auto';
 
-    private const POSITIVE_LEVELS = ['weak', 'medium', 'strong'];
+    private const POSITIVE_LEVELS = ['weak', 'medium', 'strong', 'present'];
 
     public function rebuildForRegionYear(string $provinceCode, string $districtCode, int $year): void
     {
@@ -38,6 +38,7 @@ class DetectionAggregationService
             $detections = Detection::query()
                 ->where('province_code', $provinceCode)
                 ->where('district_code', $districtCode)
+                ->with(['results.disease:id,code'])
                 ->get();
 
             $monthStats = [];
@@ -59,12 +60,7 @@ class DetectionAggregationService
 
                 $monthStats[$month]['total_samples']++;
 
-                foreach ($this->diseaseColumnMap() as $code => $column) {
-                    $level = $detection->{$column} ?? null;
-                    if (!in_array($level, self::POSITIVE_LEVELS, true)) {
-                        continue;
-                    }
-
+                foreach ($this->positiveCodes($detection) as $code) {
                     if (!isset($monthStats[$month]['diseases'][$code])) {
                         $monthStats[$month]['diseases'][$code] = 0;
                     }
@@ -204,5 +200,26 @@ class DetectionAggregationService
             'NAPI' => 'dna_napi_level',
             'CB'   => 'dna_cb_level',
         ];
+    }
+
+    /**
+     * 返回指定检测记录的阳性病种 code 集合，优先使用明细表结果。
+     *
+     * @return array<int,string>
+     */
+    private function positiveCodes(Detection $detection): array
+    {
+        $codes = [];
+        $results = $detection->relationLoaded('results') ? $detection->results : $detection->results()->with('disease:id,code')->get();
+        foreach ($results as $result) {
+            if (!in_array($result->level, self::POSITIVE_LEVELS, true)) {
+                continue;
+            }
+            $code = $result->disease->code ?? null;
+            if ($code) {
+                $codes[] = $code;
+            }
+        }
+        return array_values(array_unique($codes));
     }
 }

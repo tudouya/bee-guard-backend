@@ -4,6 +4,7 @@ namespace App\Filament\Admin\Resources\DetectionResource\Pages;
 
 use App\Filament\Admin\Resources\DetectionResource;
 use App\Models\DetectionCode;
+use App\Services\DetectionResultSyncService;
 use Illuminate\Validation\ValidationException;
 use Filament\Resources\Pages\CreateRecord;
 
@@ -32,5 +33,10 @@ class CreateDetection extends CreateRecord
             ]);
         }
         return $data;
+    }
+
+    protected function afterCreate(): void
+    {
+        app(DetectionResultSyncService::class)->sync($this->record);
     }
 }
