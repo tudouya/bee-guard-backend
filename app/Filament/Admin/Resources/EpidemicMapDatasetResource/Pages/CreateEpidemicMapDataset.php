@@ -34,6 +34,7 @@ class CreateEpidemicMapDataset extends CreateRecord
             $data['updated_by'] = $userId;
         }
 
+        $this->validateEntriesUniqueness($data);
         $this->ensureUniqueDataset($data);
 
         return $data;
@@ -60,6 +61,61 @@ class CreateEpidemicMapDataset extends CreateRecord
             throw ValidationException::withMessages([
                 'district_code' => '同一年份、地区与数据类型的疫情地图数据已存在，请前往列表页面进行编辑。',
             ]);
+        }
+    }
+
+    /**
+     * 校验月度病害数据中“月份+病种”组合的唯一性，定位到具体重复行。
+     */
+    private function validateEntriesUniqueness(array $data): void
+    {
+        $entries = $data['entries'] ?? [];
+        if (!is_array($entries) || count($entries) < 2) {
+            return;
+        }
+
+        $groups = [];
+        foreach ($entries as $index => $entry) {
+            $month = (int) ($entry['month'] ?? 0);
+            $disease = $entry['disease_code'] ?? null;
+            if (!$month || !$disease) {
+                continue;
+            }
+
+            $key = sprintf('%02d-%s', $month, $disease);
+            $groups[$key] = $groups[$key] ?? [];
+            $groups[$key][] = (int) $index;
+        }
+
+        $errors = [];
+        $duplicates = [];
+
+        foreach ($groups as $key => $indexes) {
+            if (count($indexes) < 2) {
+                continue;
+            }
+
+            [$monthLabel, $diseaseCode] = explode('-', $key, 2);
+            $label = sprintf('%s月 - %s', $monthLabel, $diseaseCode);
+            $duplicates[] = $label;
+
+            $rowNumbers = array_map(fn (int $i) => $i + 1, $indexes);
+            foreach ($indexes as $i) {
+                $otherRows = array_diff($rowNumbers, [$i + 1]);
+                $errors["entries.$i.disease_code"][] = sprintf(
+                    '%s 与第 %s 条重复，请修改或删除重复项',
+                    $label,
+                    implode('、', $otherRows)
+                );
+            }
+        }
+
+        if (!empty($errors)) {
+            $errors['entries'] = [
+                '发现重复组合：' . implode('，', array_unique($duplicates)),
+            ];
+
+            throw ValidationException::withMessages($errors);
         }
     }
 }
